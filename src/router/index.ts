@@ -107,9 +107,21 @@ export function createBookstoreRouter(
       {
         path: '/contact',
         name: 'contact',
-        component: () => import('@/views/ComingSoonView.vue'),
-        props: { title: 'Contact', description: 'Get in touch with InwZa Bookstore.' },
+        component: () => import('@/views/ContactView.vue'),
         meta: { title: 'Contact' },
+      },
+      {
+        path: '/faq',
+        name: 'faq',
+        component: () => import('@/views/FaqView.vue'),
+        meta: { title: 'Frequently asked questions' },
+      },
+      {
+        path: '/terms',
+        alias: ['/condition', '/store-information'],
+        name: 'store-information',
+        component: () => import('@/views/StoreInformationView.vue'),
+        meta: { title: 'Store information and terms' },
       },
       {
         path: '/login',
