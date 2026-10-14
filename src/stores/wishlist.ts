@@ -8,8 +8,10 @@ export const useWishlistStore = defineStore('wishlist', () => {
   const items = ref<WishlistItem[]>([])
   const isLoading = ref(false)
 
-  const count = computed(() => items.value.length)
-  const savedProductIds = computed(() => new Set(items.value.map((i) => i.product.id)))
+  const count = computed(() => (Array.isArray(items.value) ? items.value.length : 0))
+  const savedProductIds = computed(
+    () => new Set((Array.isArray(items.value) ? items.value : []).map((i) => i.product?.id)),
+  )
 
   function hasItem(productId: number): boolean {
     return savedProductIds.value.has(productId)
@@ -18,7 +20,8 @@ export const useWishlistStore = defineStore('wishlist', () => {
   async function fetchWishlist(): Promise<void> {
     isLoading.value = true
     try {
-      items.value = await WishlistService.getWishlist()
+      const data = await WishlistService.getWishlist()
+      items.value = Array.isArray(data) ? data : []
     } catch {
       // In case of error (e.g. unauthenticated or network), keep items as-is
     } finally {
