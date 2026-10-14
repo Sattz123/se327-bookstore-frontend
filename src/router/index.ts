@@ -57,6 +57,18 @@ export function createBookstoreRouter(
         meta: { title: 'Register', guestOnly: true },
       },
       {
+        path: '/forgot-password',
+        name: 'forgot-password',
+        component: () => import('@/views/ForgotPasswordView.vue'),
+        meta: { title: 'Forgot Password', guestOnly: true },
+      },
+      {
+        path: '/reset-password',
+        name: 'reset-password',
+        component: () => import('@/views/ResetPasswordView.vue'),
+        meta: { title: 'Reset Password', guestOnly: true },
+      },
+      {
         path: '/profile',
         name: 'profile',
         component: () => import('@/views/ProfileView.vue'),

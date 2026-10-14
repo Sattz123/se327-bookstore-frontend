@@ -1,5 +1,13 @@
 import apiClient from './apiClient'
-import type { AuthResponse, LoginPayload, RegisterPayload, User } from '@/types/auth'
+import type {
+  AuthResponse,
+  ForgotPasswordPayload,
+  LoginPayload,
+  RegisterPayload,
+  ResetPasswordPayload,
+  User,
+  VerifyResetTokenResponse,
+} from '@/types/auth'
 
 export const AuthService = {
   async register(payload: RegisterPayload): Promise<AuthResponse> {
@@ -23,5 +31,22 @@ export const AuthService = {
     } catch {
       // Ignore network errors during logout
     }
+  },
+
+  async forgotPassword(payload: ForgotPasswordPayload): Promise<{ message: string }> {
+    const response = await apiClient.post<{ message: string }>('/auth/forgot-password', payload)
+    return response.data
+  },
+
+  async verifyResetToken(token: string): Promise<VerifyResetTokenResponse> {
+    const response = await apiClient.get<VerifyResetTokenResponse>('/auth/verify-reset-token', {
+      params: { token },
+    })
+    return response.data
+  },
+
+  async resetPassword(payload: ResetPasswordPayload): Promise<{ message: string }> {
+    const response = await apiClient.post<{ message: string }>('/auth/reset-password', payload)
+    return response.data
   },
 }
