@@ -57,6 +57,12 @@ export function createBookstoreRouter(
         meta: { title: 'Register', guestOnly: true },
       },
       {
+        path: '/profile',
+        name: 'profile',
+        component: () => import('@/views/ProfileView.vue'),
+        meta: { title: 'My Profile', requiresAuth: true },
+      },
+      {
         path: '/:pathMatch(.*)*',
         name: 'not-found',
         component: () => import('@/views/NotFoundView.vue'),

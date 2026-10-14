@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { computed, inject } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
-import { getActivePinia, piniaSymbol } from 'pinia'
+import { piniaSymbol } from 'pinia'
 import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
-const pinia = inject(piniaSymbol, null) ?? getActivePinia()
-const authStore = pinia ? useAuthStore(pinia) : null
+const hasPinia = inject(piniaSymbol, null) !== null
+const authStore = hasPinia ? useAuthStore() : null
 
 const links = [
   { name: 'home', label: 'Home' },
@@ -55,9 +55,13 @@ async function handleLogout() {
           class="flex items-center gap-2 border-t border-slate-200 pt-3 sm:border-t-0 sm:border-l sm:pl-4 sm:pt-0"
         >
           <template v-if="isAuthenticated">
-            <span class="text-sm font-medium text-slate-700">
+            <RouterLink
+              :to="{ name: 'profile' }"
+              class="rounded-lg px-2.5 py-1 text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+              exact-active-class="bg-indigo-50 text-indigo-800"
+            >
               Hi, {{ currentUser?.username }}
-            </span>
+            </RouterLink>
             <span
               v-if="isAdmin"
               class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800"
