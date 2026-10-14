@@ -27,16 +27,35 @@ const busy = ref(false)
 const error = ref('')
 const pending = ref<CheckoutPayload | null>(null)
 const selectedAddress = computed(() => addresses.value.find((a) => a.id === addressId.value))
-const ready = computed(
-  () =>
-    review.value?.cart.items.length &&
-    review.value.cart.items.every((i) => i.available) &&
-    addressId.value &&
-    (paymentType.value === 'CASH_ON_DELIVERY' || paymentMethodId.value),
+const isAddressValid = computed(() => Boolean(addressId.value))
+const isPaymentValid = computed(
+  () => paymentType.value === 'CASH_ON_DELIVERY' || Boolean(paymentMethodId.value),
 )
+const isCartValid = computed(
+  () =>
+    Boolean(review.value?.cart.items.length) &&
+    Boolean(review.value?.cart.items.every((i) => i.available)),
+)
+const ready = computed(() => isCartValid.value && isAddressValid.value && isPaymentValid.value)
 let epoch = 0
 let controller: AbortController | undefined
 let storageKey = ''
+
+function isValidCheckoutPayload(value: unknown): value is CheckoutPayload {
+  if (!value || typeof value !== 'object') return false
+  const p = value as Record<string, unknown>
+  return (
+    Number.isInteger(p.addressId) &&
+    (p.addressId as number) > 0 &&
+    (p.paymentType === 'CASH_ON_DELIVERY' || p.paymentType === 'SIMULATED_CARD') &&
+    (p.paymentMethodId === null ||
+      (Number.isInteger(p.paymentMethodId) && (p.paymentMethodId as number) > 0)) &&
+    typeof p.checkoutKey === 'string' &&
+    /^[0-9a-f-]{36}$/i.test(p.checkoutKey) &&
+    typeof p.cartFingerprint === 'string' &&
+    /^[a-f0-9]{64}$/.test(p.cartFingerprint)
+  )
+}
 
 function remember(payload: CheckoutPayload | null) {
   pending.value = payload
@@ -49,22 +68,12 @@ function remember(payload: CheckoutPayload | null) {
 }
 function restorePending() {
   try {
-    const value = JSON.parse(
-      window.sessionStorage.getItem(storageKey) ?? 'null',
-    ) as CheckoutPayload | null
-    if (
-      value &&
-      Number.isInteger(value.addressId) &&
-      value.addressId > 0 &&
-      ['CASH_ON_DELIVERY', 'SIMULATED_CARD'].includes(value.paymentType) &&
-      (value.paymentMethodId === null ||
-        (Number.isInteger(value.paymentMethodId) && value.paymentMethodId > 0)) &&
-      typeof value.checkoutKey === 'string' &&
-      /^[0-9a-f-]{36}$/i.test(value.checkoutKey) &&
-      typeof value.cartFingerprint === 'string' &&
-      /^[a-f0-9]{64}$/.test(value.cartFingerprint)
-    )
+    const raw = window.sessionStorage.getItem(storageKey)
+    if (!raw) return
+    const value = JSON.parse(raw) as unknown
+    if (isValidCheckoutPayload(value)) {
       pending.value = value
+    }
   } catch {
     remember(null)
   }
