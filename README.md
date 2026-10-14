@@ -1,5 +1,9 @@
 # bookstore-frontend
 
+## Administrator customers (Stage 18)
+
+Open **Customers** in the back-office sidebar (`/admin/customers`) to search names/emails and view contact details, join dates, non-cancelled order counts and total order values. The list is paginated and read-only, matching the original scope. Pending orders are included in order value; this is not a revenue report. Administrators are excluded from the customer list.
+
 ## Administrator categories (Stage 17)
 
 Open **Categories** in the back-office sidebar (`/admin/categories`). Create/edit the name, visibility and optional image in one form; selecting an image shows a preview and uploads it with **Save category**. Existing image URLs and image removal are supported. Category images also appear in storefront category cards, with an initial-letter fallback for missing images.
