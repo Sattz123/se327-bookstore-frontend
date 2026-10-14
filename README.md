@@ -35,7 +35,7 @@ On first setup, copy `.env.example` to `.env` in this frontend folder (PowerShel
 
 `VITE_BACKEND_URL` sets the Axios base URL and defaults to `http://localhost:8080/api` when absent. This is the frontend's own setting; it does not read the backend's `.env`. Restart Vite after changing it. Vite includes `VITE_` settings in the browser bundle, so they must not contain secrets. Production builds use the value present when building.
 
-`ProductService` uses the shared Axios client to request `GET /products` and `GET /products/{id}`. With the example configuration these resolve to `http://localhost:8080/api/products` and its detail routes. Run the backend and its PostgreSQL database alongside Vite. The backend's local `dev` profile provides the five categories, 60 books, and covers.
+`ProductService` uses the shared Axios client to request `GET /products`, `/products/featured`, and `/products/{id}`. `CategoryService` requests `/categories`. With the example configuration these resolve under `http://localhost:8080/api`. Run the backend and its PostgreSQL database alongside Vite. The backend's local `dev` profile provides the five categories, 60 books, and covers.
 
 The client accepts JSON responses and uses a 10-second timeout. Feature services handle responses and errors as they are implemented.
 
@@ -49,20 +49,25 @@ Tailwind is installed through its Vite plugin. `src/assets/main.css` imports Tai
 
 `App.vue` contains the shared `AppHeader`, main `RouterView`, and `AppFooter`. Navigation wraps on narrow screens and highlights the current page. Keyboard users can skip directly to the main content.
 
-| Path              | Current page                    |
-| ----------------- | ------------------------------- |
-| `/`               | Basic welcome page              |
-| `/products`       | Live book catalog               |
-| `/products/:id`   | Book details                    |
-| `/categories`     | Categories placeholder          |
-| `/contact`        | Contact placeholder             |
-| Any unmatched URL | Not-found page with a link home |
+| Path              | Current page                         |
+| ----------------- | ------------------------------------ |
+| `/`               | Featured/newest books and categories |
+| `/products`       | Live book catalog                    |
+| `/products/:id`   | Book details                         |
+| `/categories`     | Visible category list                |
+| `/categories/:id` | Books within a category              |
+| `/contact`        | Contact placeholder                  |
+| Any unmatched URL | Not-found page with a link home      |
 
-Categories and contact still share `ComingSoonView.vue` and will be replaced in later stages. Pinia remains installed for future feature stores; the generated counter example has been removed.
+Contact still uses `ComingSoonView.vue` and will be replaced in a later stage. Pinia remains installed for future feature stores; the generated counter example has been removed.
 
 ### Book catalog
 
-`src/types/catalog.ts` matches the backend's product/category DTOs. `ProductListView` displays a responsive grid of `BookCard` components; selecting a card opens `ProductDetailView`. Detail pages show the author, category, description, price, stock, formats, and ordered covers. Prices use dollars to match the original bookstore. Category discovery, search, and pagination come in Stage 4; this version lists the full visible catalog.
+`src/types/catalog.ts` matches the backend's product/category DTOs. `ProductListView` displays a responsive grid of `BookCard` components; selecting a card opens `ProductDetailView`. Detail pages show the author, category, description, price, stock, formats, and ordered covers. Prices use dollars to match the original bookstore.
+
+The home page shows the newest eight visible books as featured books and links to visible categories. `/categories` lists categories, and `/categories/2` shows books in that category. Category cards use initials because the original category image files were unavailable.
+
+Search matches title or author. The URL stores `q`, `categoryId`, and the one-based `page`; category pages use the category ID in the path. For example, `/products?q=harry&categoryId=2&page=1` or `/categories/2?q=harry`. Search/filter submission resets to the first page. Previous/Next preserve the other filters, and refresh/Back restore the selected query. The server returns `{content, page, size, totalElements, totalPages}` with a fixed 15 books per page, newest first. Invalid URLs show a reset option; a valid page beyond the last provides a link to the first page. Missing or hidden categories display a category-not-found message.
 
 Both views display loading, failure/retry, and empty or missing-book states. Hidden books and books in hidden categories are omitted by the backend. Out-of-stock books remain viewable. Route changes cancel old requests so a delayed response cannot replace the next book. `BookCover` resolves image paths against the API's backend origin and shows a fallback when no cover is available or an image fails.
 

@@ -3,7 +3,7 @@ import type { AxiosAdapter } from 'axios'
 import ProductService from '@/services/ProductService'
 import apiClient from '@/services/apiClient'
 import { formatLabels, formatPrice, resolveImageUrl } from '@/utils/catalog'
-import { book, response } from './fixtures/catalog'
+import { book, response, page } from './fixtures/catalog'
 
 const originalAdapter = apiClient.defaults.adapter
 
@@ -13,12 +13,12 @@ afterEach(() => {
 
 describe('catalog HTTP service', () => {
   it('requests the list as JSON and forwards cancellation', async () => {
-    const adapter = vi.fn<AxiosAdapter>().mockResolvedValue(response([book()]))
+    const adapter = vi.fn<AxiosAdapter>().mockResolvedValue(response(page([book()])))
     apiClient.defaults.adapter = adapter
     const controller = new AbortController()
-    const result = await ProductService.getProducts(controller.signal)
+    const result = await ProductService.getProducts({}, controller.signal)
 
-    expect(result.data[0]?.name).toBe('The Great Gatsby')
+    expect(result.data.content[0]?.name).toBe('The Great Gatsby')
     expect(adapter).toHaveBeenCalledWith(
       expect.objectContaining({
         method: 'get',

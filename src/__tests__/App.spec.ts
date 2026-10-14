@@ -5,7 +5,16 @@ import App from '@/App.vue'
 import { createBookstoreRouter } from '@/router'
 
 vi.mock('@/services/ProductService', () => ({
-  default: { getProducts: vi.fn().mockResolvedValue({ data: [] }) },
+  default: {
+    getProducts: vi.fn().mockResolvedValue({
+      data: { content: [], page: 1, size: 15, totalElements: 0, totalPages: 0 },
+    }),
+    getFeaturedProducts: vi.fn().mockResolvedValue({ data: [] }),
+  },
+}))
+
+vi.mock('@/services/CategoryService', () => ({
+  default: { getCategories: vi.fn().mockResolvedValue({ data: [] }) },
 }))
 
 describe('bookstore layout and navigation', () => {
@@ -60,7 +69,7 @@ describe('bookstore layout and navigation', () => {
 
     expect(router.currentRoute.value.path).toBe(path)
     expect(app.get('main h1').text()).toBe(heading)
-    if (path !== '/products') expect(app.get('main').text()).toContain('Coming soon')
+    if (path === '/contact') expect(app.get('main').text()).toContain('Coming soon')
     expect(document.title).toBe(`${heading} | InwZa Bookstore`)
     expect(app.get(`header a[href="${path}"]`).attributes('aria-current')).toBe('page')
     expect(app.get('header a[href="/"]').attributes('aria-current')).toBeUndefined()
@@ -69,7 +78,7 @@ describe('bookstore layout and navigation', () => {
   it('opens the books page from the home page button', async () => {
     const app = await renderAt()
 
-    await followLink(app, 'main a[href="/products"]', '/products')
+    await followLink(app, 'main section a[href="/products"]', '/products')
 
     expect(app.get('main h1').text()).toBe('Books')
   })

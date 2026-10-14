@@ -1,5 +1,16 @@
 import { AxiosHeaders, type AxiosResponse } from 'axios'
-import type { Product } from '@/types/catalog'
+import type { Product, ProductPage } from '@/types/catalog'
+
+export function page(content: Product[] = [], overrides: Partial<ProductPage> = {}): ProductPage {
+  return {
+    content,
+    page: 1,
+    size: 15,
+    totalElements: content.length,
+    totalPages: content.length ? 1 : 0,
+    ...overrides,
+  }
+}
 
 export function book(overrides: Partial<Product> = {}): Product {
   return {
