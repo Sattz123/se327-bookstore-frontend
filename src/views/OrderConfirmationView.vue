@@ -3,9 +3,11 @@ import { isAxiosError } from 'axios'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import AppIcon from '@/components/AppIcon.vue'
+import BookCover from '@/components/BookCover.vue'
 import '@/assets/orders.css'
 import { CheckoutService } from '@/services/CheckoutService'
 import { OrderService } from '@/services/OrderService'
+import ProductService from '@/services/ProductService'
 import { useAuthStore } from '@/stores/auth'
 import type { Order } from '@/types/checkout'
 import { formatLabels, formatPrice } from '@/utils/catalog'
@@ -16,17 +18,31 @@ const router = useRouter()
 const auth = useAuthStore()
 const isHistory = computed(() => route.name === 'order-detail')
 const order = ref<Order | null>(null)
+const coverImages = ref<Record<number, string>>({})
 const itemCount = computed(
   () => order.value?.items.reduce((count, item) => count + item.quantity, 0) ?? 0,
 )
 const loading = ref(false)
 const error = ref('')
 let controller: AbortController | undefined
+async function loadCoverImages(items: Order['items'], signal: AbortController['signal']) {
+  await Promise.all(
+    [...new Set(items.map((item) => item.productId))].map(async (id) => {
+      try {
+        const { data } = await ProductService.getProduct(String(id), signal)
+        if (!signal.aborted && data.images[0]) coverImages.value[id] = data.images[0]
+      } catch {
+        // An unavailable catalog book must not prevent access to its purchased details.
+      }
+    }),
+  )
+}
 async function load() {
   controller?.abort()
   const request = new AbortController()
   controller = request
   order.value = null
+  coverImages.value = {}
   error.value = ''
   loading.value = true
   const id = String(route.params.id)
@@ -44,7 +60,10 @@ async function load() {
     const data = isHistory.value
       ? await OrderService.getOrder(id, request.signal)
       : await CheckoutService.confirmation(id, request.signal)
-    if (!request.signal.aborted) order.value = data
+    if (!request.signal.aborted) {
+      order.value = data
+      void loadCoverImages(data.items, request.signal)
+    }
   } catch (cause) {
     if (!request.signal.aborted) {
       if (isAxiosError(cause) && cause.response?.status === 401) auth.clearAuth()
@@ -114,7 +133,11 @@ onBeforeUnmount(() => controller?.abort())
           </div>
           <ul class="order-item-list" aria-label="Purchased items">
             <li v-for="(item, index) in order.items" :key="index" class="order-item">
-              <span class="order-book-icon"><AppIcon name="book" :size="25" /></span>
+              <BookCover
+                class="order-book-cover"
+                :image="coverImages[item.productId]"
+                :name="item.title"
+              />
               <div class="order-item-info">
                 <h3>{{ item.title }}</h3>
                 <span class="order-format">{{ formatLabels[item.format] }}</span>

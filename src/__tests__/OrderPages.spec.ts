@@ -6,12 +6,15 @@ import App from '@/App.vue'
 import { createBookstoreRouter } from '@/router'
 import { useAuthStore } from '@/stores/auth'
 import { OrderService } from '@/services/OrderService'
+import ProductService from '@/services/ProductService'
+import { book, response } from './fixtures/catalog'
 import { placedOrder } from './fixtures/checkout'
 import { cartReader } from './fixtures/cart'
 
 vi.mock('@/services/OrderService', () => ({
   OrderService: { getOrders: vi.fn(), getOrder: vi.fn() },
 }))
+vi.mock('@/services/ProductService', () => ({ default: { getProduct: vi.fn() } }))
 vi.mock('@/services/CartService', () => ({
   CartService: { getCart: vi.fn().mockResolvedValue({ items: [], totalQuantity: 0, total: 0 }) },
 }))
@@ -34,6 +37,7 @@ describe('customer order pages', () => {
       { ...placedOrder, id: 40, status: 'CANCELLED' },
     ])
     vi.mocked(OrderService.getOrder).mockResolvedValue(placedOrder)
+    vi.mocked(ProductService.getProduct).mockResolvedValue(response(book()))
   })
   afterEach(() => {
     wrapper?.unmount()
@@ -88,5 +92,27 @@ describe('customer order pages', () => {
     expect(view.get('main').text()).toContain('No orders yet.')
     expect(view.find('[aria-label="Your orders"]').exists()).toBe(false)
     expect(view.get('.orders-empty a').attributes('href')).toBe('/products')
+  })
+  it('loads each book cover once even when multiple formats were purchased', async () => {
+    vi.mocked(OrderService.getOrder).mockResolvedValueOnce({
+      ...placedOrder,
+      items: [placedOrder.items[0]!, { ...placedOrder.items[0]!, format: 'EBOOK' }],
+    })
+    const { view } = await render('/orders/41')
+    expect(ProductService.getProduct).toHaveBeenCalledExactlyOnceWith('1', expect.any(AbortSignal))
+    const images = view.findAll('.order-book-cover img')
+    expect(images).toHaveLength(2)
+    expect(images[0]!.attributes('src')).toMatch(/\/images\/front.png$/)
+    expect(images[0]!.attributes('alt')).toBe('The Great Gatsby')
+    await images[0]!.trigger('error')
+    expect(view.get('.order-book-cover').text()).toBe('Cover unavailable')
+  })
+  it('keeps the order readable when a book is removed or its image cannot be loaded', async () => {
+    vi.mocked(ProductService.getProduct).mockRejectedValueOnce(new Error('Book unavailable'))
+    const { view } = await render('/orders/41')
+    expect(view.get('[aria-label="Purchased items"]').text()).toContain('The Great Gatsby')
+    expect(view.get('.order-book-cover').text()).toBe('Cover unavailable')
+    expect(view.get('aside').text()).toContain('$39.90')
+    expect(view.find('[role="alert"]').exists()).toBe(false)
   })
 })
