@@ -4,6 +4,8 @@ import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { AdminProductService as service } from '@/services/AdminProductService'
 import { useAuthStore } from '@/stores/auth'
+import ProductImagesEditor from '@/components/ProductImagesEditor.vue'
+import NewProductImages from '@/components/NewProductImages.vue'
 import type { AdminCategory, AdminProduct, AdminProductPage } from '@/types/adminProduct'
 import type { BookFormat } from '@/types/catalog'
 import { formatLabels, formatPrice } from '@/utils/catalog'
@@ -19,6 +21,8 @@ const visibilityFilter = ref('')
 const filters = reactive<{ q: string; categoryId?: number; visible?: boolean }>({ q: '' })
 const loading = ref(false)
 const busy = ref(false)
+const imageBusy = ref(false)
+const newImages = ref<File[]>([])
 const error = ref('')
 const message = ref('')
 const showForm = ref(false)
@@ -93,6 +97,8 @@ async function load(includeCategories = false) {
   }
 }
 function cancelForm() {
+  newImages.value = []
+  imageBusy.value = false
   showForm.value = false
   editing.value = null
   Object.assign(form, emptyForm())
@@ -156,6 +162,7 @@ async function mutate(operation: () => Promise<unknown>, success: string, closeF
   }
 }
 async function save() {
+  if (busy.value || imageBusy.value) return
   if (
     !form.name.trim() ||
     !form.categoryId ||
@@ -179,11 +186,47 @@ async function save() {
     version: editing.value?.version ?? null,
   }
   const id = editing.value?.id
+  const files = [...newImages.value]
+  const session = epoch
   await mutate(
-    () => (id ? service.update(id, payload) : service.create(payload)),
-    id ? 'Product updated.' : 'Product created.',
+    async () => {
+      let product = id ? await service.update(id, payload) : await service.create(payload)
+      if (session !== epoch) return
+      // Keep the saved ID immediately so an upload failure cannot create another book on retry.
+      imagesUpdated(product)
+      try {
+        for (const file of files) {
+          product = await service.uploadImage(product.id, file, product.version)
+          if (session !== epoch) return
+          imagesUpdated(product)
+        }
+      } catch (cause) {
+        if (session !== epoch) return
+        newImages.value = []
+        // A lost upload response may still have saved the image. Reload before offering recovery.
+        try {
+          const saved = await service.get(product.id)
+          if (session !== epoch) return
+          imagesUpdated(saved)
+        } catch {
+          /* The saved product ID is retained even if the refresh fails. */
+        }
+        if (session !== epoch) return
+        await load()
+        if (session !== epoch) return
+        message.value = `Product #${product.id} was saved, but image upload did not finish. Review its saved images below and add any missing ones.`
+        throw cause
+      }
+    },
+    id ? 'Product updated.' : files.length ? 'Product created with images.' : 'Product created.',
     true,
   )
+}
+function imagesUpdated(product: AdminProduct) {
+  editing.value = product
+  const row = result.value?.content.findIndex((item) => item.id === product.id) ?? -1
+  if (result.value && row >= 0) result.value.content[row] = product
+  stockDrafts[product.id] = product.stockQuantity
 }
 function validStock(value: number | undefined): value is number {
   return value !== undefined && Number.isInteger(value) && value >= 0 && value <= 2147483647
@@ -299,7 +342,15 @@ onBeforeUnmount(() => {
       <h2 class="text-xl font-semibold">
         {{ editing ? `Edit product #${editing.id}` : 'Create product' }}
       </h2>
-      <fieldset :disabled="busy" class="mt-5 grid gap-5 md:grid-cols-2">
+      <fieldset :disabled="busy || imageBusy" class="mt-5 grid gap-5 md:grid-cols-2">
+        <ProductImagesEditor
+          v-if="editing"
+          :key="editing.id"
+          :product="editing"
+          @updated="imagesUpdated"
+          @busy="imageBusy = $event"
+        />
+        <NewProductImages v-else v-model="newImages" />
         <div>
           <label for="product-name" class="block font-medium">Title</label
           ><input
