@@ -30,9 +30,11 @@ onBeforeUnmount(() => controller?.abort())
 </script>
 
 <template>
-  <section :aria-busy="loading">
-    <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">Categories</h1>
-    <p class="mt-3 text-slate-600">Explore books by the topics you love.</p>
+  <section :aria-busy="loading" class="category-page">
+    <div class="category-page-heading">
+      <h1>Shop by category</h1>
+      <p>Browse our curated collection of books by category. Find your next great read.</p>
+    </div>
     <p v-if="loading" role="status" class="mt-8 text-slate-600">Loading categories…</p>
     <div
       v-else-if="error"
@@ -51,6 +53,6 @@ onBeforeUnmount(() => controller?.abort())
     <p v-else-if="!categories.length" role="status" class="mt-8 text-slate-600">
       No categories available yet.
     </p>
-    <CategoryGrid v-else :categories="categories" class="mt-8" />
+    <CategoryGrid v-else :categories="categories" variant="collection" />
   </section>
 </template>

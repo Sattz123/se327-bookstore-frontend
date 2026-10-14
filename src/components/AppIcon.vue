@@ -1,6 +1,9 @@
 <script setup lang="ts">
 withDefaults(defineProps<{ name: string; size?: number }>(), { size: 20 })
 const paths: Record<string, string> = {
+  journal: 'M5 3h15v18H5V3ZM2 6h5M2 10h5M2 14h5M2 18h5M10 7h6M10 11h6M10 15h4',
+  smile: 'M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0ZM8 9v1m8-1v1M7 15c3 4 7 4 10 0',
+  cpu: 'M6 6h12v12H6V6Zm3 3h6v6H9V9ZM9 2v4m6-4v4M9 18v4m6-4v4M2 9h4m-4 6h4M18 9h4m-4 6h4',
   book: 'M4 3h6a3 3 0 0 1 3 3v15a4 4 0 0 0-4-3H4V3Zm16 0h-4a3 3 0 0 0-3 3v15a4 4 0 0 1 4-3h3V3Z',
   search: 'm21 21-5-5M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z',
   cart: 'M2 3h3l3 13h11l3-9H6M10 21h.01M18 21h.01',

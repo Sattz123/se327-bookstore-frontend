@@ -61,7 +61,7 @@ describe('bookstore layout and navigation', () => {
 
   it.each([
     ['/products', 'Books', 'Books'],
-    ['/categories', 'Categories', 'Categories'],
+    ['/categories', 'Shop by category', 'Categories'],
     ['/contact', 'Contact the store', 'Contact'],
   ])('opens %s from the main navigation', async (path, heading, title) => {
     const app = await renderAt()
