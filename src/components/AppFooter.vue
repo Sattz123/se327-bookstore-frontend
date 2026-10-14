@@ -15,6 +15,10 @@ const year = new Date().getFullYear()
           >Browse books</RouterLink
         >
         <RouterLink :to="{ name: 'contact' }" class="hover:text-indigo-700">Contact</RouterLink>
+        <RouterLink :to="{ name: 'faq' }" class="hover:text-indigo-700">FAQ</RouterLink>
+        <RouterLink :to="{ name: 'store-information' }" class="hover:text-indigo-700"
+          >Store information and terms</RouterLink
+        >
       </nav>
     </div>
   </footer>

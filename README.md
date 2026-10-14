@@ -250,3 +250,20 @@ instead of editable stale details. Password changes retain the existing JWT expi
 behavior; already-issued tokens are not revoked by a password change.
 
 Merge `feature/admin-dashboard` into develop before `feature/admin-profile` in both repositories.
+
+## Store information (Stage 20)
+
+Public pages `/contact`, `/faq` and `/terms` are linked from the footer. `/condition`
+(the original terms link) and `/store-information` also open the terms/information page.
+Contact reuses the original Sydney address, phone, hours and the explicit bookstore
+email from its checkout page. They remain labelled as demo contact details. The map
+has a descriptive title and a normal map link if embedding is unavailable. FAQs use
+native keyboard-accessible details/summary elements and links to the relevant account pages.
+
+Content is static. The original FAQ seed mentions 30-day returns, but its templates
+contradict one another about shipping prices, currencies, tracking and cancellation
+windows. The rebuilt help describes the implemented checkout (no shipping surcharge,
+simulated cards, account order status and administrator cancellation) rather than
+promising services that do not exist. The original condition.ejs is an account landing
+page rather than actual terms; the new page explains the demo's account/order rules.
+No editable help data, contact-message endpoint or database migration is needed.
