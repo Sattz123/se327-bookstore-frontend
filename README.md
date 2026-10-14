@@ -1,6 +1,17 @@
 # bookstore-frontend
 
-## Administrator orders (Stage 18)
+## Full regression and feature comparison (Stage 21)
+
+End-to-end browser workflows (`src/__tests__/EndToEndWorkflows.spec.ts`) exercise both customer and administrator journeys against a repeatable test dataset across Pinia stores and router views. The test suite covers:
+
+- **Catalog and discovery:** Browsing book listings, keyword searching, category filtering, product detail views with multi-image navigation, and edition format selection (`PAPERBACK`, `HARDCOVER`, `EBOOK`, `AUDIOBOOK`).
+- **Cart and wishlist:** Persisting format choices across cart operations, updating quantities, calculating line/order totals, and adding/removing wishlist items.
+- **Address book and payment methods:** Managing shipping addresses and simulated payment methods with validation and default flags.
+- **Checkout and order confirmation:** Order review with fingerprint verification, placing orders with delivery addresses and simulated payments, and viewing confirmation receipts.
+- **Order history and profile:** Viewing historical order summaries and inspecting order details, with regression coverage verifying selected book formats are preserved in order details.
+- **Administrator management and RBAC boundaries:** Rejecting unauthenticated and customer attempts to access `/admin`, overview dashboard business metrics, product inventory management, category management, order fulfillment status updates, customer directory, and administrator profile management.
+
+All 229 Vitest tests across 21 test files pass, alongside ESLint (`--max-warnings=0`), Prettier formatting, `vue-tsc` type-checking, and production Vite compilation.
 
 Open **Orders** in the back office (`/admin/orders`) to search by order ID/customer name/email, filter statuses and view paginated results. **View** opens a linked detail view with customer contact, original delivery/payment/item snapshots and totals. The status form offers only transitions allowed by the backend. Cancellation uses an explicit confirmation button, restores purchased quantities once and cannot be undone. There is no real card refund. A conflict keeps the detail visible and offers **Reload order**.
 
