@@ -4,6 +4,10 @@ import { createMemoryHistory } from 'vue-router'
 import App from '@/App.vue'
 import { createBookstoreRouter } from '@/router'
 
+vi.mock('@/services/ProductService', () => ({
+  default: { getProducts: vi.fn().mockResolvedValue({ data: [] }) },
+}))
+
 describe('bookstore layout and navigation', () => {
   let wrapper: VueWrapper | undefined
   let router: ReturnType<typeof createBookstoreRouter>
@@ -56,7 +60,7 @@ describe('bookstore layout and navigation', () => {
 
     expect(router.currentRoute.value.path).toBe(path)
     expect(app.get('main h1').text()).toBe(heading)
-    expect(app.get('main').text()).toContain('Coming soon')
+    if (path !== '/products') expect(app.get('main').text()).toContain('Coming soon')
     expect(document.title).toBe(`${heading} | InwZa Bookstore`)
     expect(app.get(`header a[href="${path}"]`).attributes('aria-current')).toBe('page')
     expect(app.get('header a[href="/"]').attributes('aria-current')).toBeUndefined()

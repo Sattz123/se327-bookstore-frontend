@@ -13,6 +13,7 @@ export default defineConfig([
     files: ['**/*.vue'],
     languageOptions: {
       parserOptions: { parser: ts.parser },
+      globals: { AbortController: 'readonly' },
     },
   },
   skipFormatting,
