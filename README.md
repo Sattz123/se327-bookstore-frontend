@@ -1,5 +1,11 @@
 # bookstore-frontend
 
+## Administrator categories (Stage 17)
+
+Open **Categories** in the back-office sidebar (`/admin/categories`). Create/edit the name, visibility and optional image in one form; selecting an image shows a preview and uploads it with **Save category**. Existing image URLs and image removal are supported. Category images also appear in storefront category cards, with an initial-letter fallback for missing images.
+
+The table supports name/visibility filtering, product counts and Hide/Show. Hiding a category also hides its books from browsing. Deleting requires confirmation and is blocked while any products (including archived ones) remain; use the product editor to reassign them, then reload categories. Server conflicts preserve form drafts and offer reload. Image/name/visibility changes save in one request, including during initial category creation.
+
 ## Product images (Stage 16)
 
 In **New product**, select and preview up to five images before saving. **Save product** creates the book and uploads those images in order, carrying forward the returned product version after each upload. The first image is the cover. If an upload fails after creation, the saved book remains open for recovery instead of creating a duplicate; check its saved images and add any missing files.
