@@ -41,6 +41,12 @@ async function logout() {
       </p>
       <nav aria-label="Administrator navigation" class="flex flex-col gap-2">
         <RouterLink
+          :to="{ name: 'admin-customers' }"
+          class="rounded-lg px-3 py-2 hover:bg-slate-800"
+          exact-active-class="bg-indigo-700"
+          >Customers</RouterLink
+        >
+        <RouterLink
           :to="{ name: 'admin-categories' }"
           class="rounded-lg px-3 py-2 hover:bg-slate-800"
           exact-active-class="bg-indigo-700"
