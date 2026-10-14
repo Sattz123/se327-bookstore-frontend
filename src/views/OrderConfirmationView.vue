@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { isAxiosError } from 'axios'
-import { onBeforeUnmount, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { CheckoutService } from '@/services/CheckoutService'
+import { OrderService } from '@/services/OrderService'
 import { useAuthStore } from '@/stores/auth'
 import type { Order } from '@/types/checkout'
 import { formatLabels, formatPrice } from '@/utils/catalog'
@@ -10,6 +11,7 @@ import { formatLabels, formatPrice } from '@/utils/catalog'
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
+const isHistory = computed(() => route.name === 'order-detail')
 const order = ref<Order | null>(null)
 const loading = ref(false)
 const error = ref('')
@@ -33,7 +35,9 @@ async function load() {
     return
   }
   try {
-    const data = await CheckoutService.confirmation(id, request.signal)
+    const data = isHistory.value
+      ? await OrderService.getOrder(id, request.signal)
+      : await CheckoutService.confirmation(id, request.signal)
     if (!request.signal.aborted) order.value = data
   } catch (cause) {
     if (!request.signal.aborted) {
@@ -47,13 +51,16 @@ async function load() {
     if (!request.signal.aborted) loading.value = false
   }
 }
-watch(() => [route.params.id, auth.currentUser?.id], load, { immediate: true, flush: 'sync' })
+watch(() => [route.name, route.params.id, auth.currentUser?.id], load, {
+  immediate: true,
+  flush: 'sync',
+})
 onBeforeUnmount(() => controller?.abort())
 </script>
 
 <template>
   <section :aria-busy="loading">
-    <h1 class="text-3xl font-bold">Order confirmation</h1>
+    <h1 class="text-3xl font-bold">{{ isHistory ? 'Order details' : 'Order confirmation' }}</h1>
     <p v-if="loading" role="status" class="mt-6">Loading your order…</p>
     <div v-if="error" class="mt-6">
       <p role="alert" class="text-rose-700">{{ error }}</p>
@@ -61,6 +68,7 @@ onBeforeUnmount(() => controller?.abort())
     </div>
     <div v-if="order" class="mt-6 space-y-5 rounded-xl border border-slate-200 p-6">
       <h2 class="text-xl font-semibold">Order #{{ order.id }}</h2>
+      <p class="text-sm text-slate-600">Placed {{ new Date(order.createdAt).toLocaleString() }}</p>
       <p role="status">
         {{
           order.status === 'PENDING'
@@ -83,7 +91,18 @@ onBeforeUnmount(() => controller?.abort())
       </ul>
       <p class="text-2xl font-bold">Total: {{ formatPrice(order.total) }}</p>
       <p class="text-sm text-slate-600">No real card payment was processed.</p>
+      <RouterLink
+        v-if="!isHistory"
+        :to="{ name: 'order-detail', params: { id: order.id } }"
+        class="inline-block font-semibold text-indigo-700 underline"
+        >View order details</RouterLink
+      >
     </div>
+    <RouterLink
+      :to="{ name: 'orders' }"
+      class="mt-6 mr-6 inline-block font-semibold text-indigo-700 underline"
+      >All orders</RouterLink
+    >
     <RouterLink to="/products" class="mt-6 inline-block font-semibold text-indigo-700 underline"
       >Continue shopping</RouterLink
     >
