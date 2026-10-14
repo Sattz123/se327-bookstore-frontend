@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onBeforeUnmount, ref, watch } from 'vue'
+import AppIcon from '@/components/AppIcon.vue'
 
 const props = defineProps<{ modelValue: File[] }>()
 const emit = defineEmits<{ 'update:modelValue': [files: File[]] }>()
@@ -55,35 +56,56 @@ onBeforeUnmount(releasePreviews)
 </script>
 
 <template>
-  <section class="rounded-lg border border-slate-200 p-4 md:col-span-2">
-    <h3 class="text-lg font-semibold">Book images</h3>
-    <p class="mt-2 text-sm text-slate-600">
-      Choose up to five PNG/JPEG images, each up to 5 MB and 4096 × 4096 pixels. The first image is
-      the cover. They will upload when you save the product.
+  <section class="image-manager md:col-span-2">
+    <div class="image-manager-heading">
+      <h3>Product images</h3>
+      <span>{{ modelValue.length }} / 5 images</span>
+    </div>
+    <p class="mt-2">
+      PNG/JPEG, up to 5 MB each (4096 × 4096 px). Images upload when you save the product.
     </p>
-    <label for="new-product-images" class="mt-4 block font-medium">Select images</label>
-    <input
-      id="new-product-images"
-      type="file"
-      multiple
-      accept="image/png,image/jpeg"
-      :disabled="modelValue.length >= 5"
-      class="mt-2 block max-w-full text-sm"
-      @change="select"
-    />
-    <p v-if="error" role="alert" class="mt-3 text-rose-700">{{ error }}</p>
-    <ul v-if="previews.length" class="mt-4 flex flex-wrap gap-4" aria-label="Selected book images">
-      <li v-for="(image, index) in previews" :key="image.url" class="w-32">
-        <img
-          :src="image.url"
-          :alt="`Preview of ${image.name}`"
-          class="aspect-[3/4] w-full rounded-lg bg-slate-100 object-contain"
-        />
-        <p class="mt-2 text-sm font-medium">{{ index === 0 ? 'Cover' : `Image ${index + 1}` }}</p>
-        <p class="truncate text-xs text-slate-500" :title="image.name">{{ image.name }}</p>
-        <button type="button" class="mt-2 text-sm text-rose-700 underline" @click="remove(index)">
-          Remove
-        </button>
+    <div class="image-chooser">
+      <span class="image-chooser-icon"><AppIcon name="image" :size="23" /></span>
+      <div class="image-chooser-copy">
+        <strong>{{
+          modelValue.length >= 5 ? 'All five image slots are filled' : 'Choose images for this book'
+        }}</strong
+        ><small>{{
+          modelValue.length
+            ? 'The first image will be used as the cover.'
+            : 'You can select more than one image.'
+        }}</small>
+      </div>
+      <input
+        id="new-product-images"
+        type="file"
+        multiple
+        accept="image/png,image/jpeg"
+        :disabled="modelValue.length >= 5"
+        class="image-file-input"
+        @change="select"
+      />
+      <label
+        for="new-product-images"
+        class="image-choose-button"
+        :class="{ 'opacity-40 cursor-not-allowed': modelValue.length >= 5 }"
+        ><AppIcon name="upload" :size="14" />Choose images</label
+      >
+    </div>
+    <p v-if="error" role="alert" class="mt-3 !text-rose-700">{{ error }}</p>
+    <ul v-if="previews.length" class="image-preview-grid" aria-label="Selected book images">
+      <li v-for="(image, index) in previews" :key="image.url" class="image-preview-card">
+        <img :src="image.url" :alt="`Preview of ${image.name}`" />
+        <div class="image-preview-title">
+          <strong>{{ index === 0 ? 'Cover image' : `Image ${index + 1}` }}</strong
+          ><span>Ready</span>
+        </div>
+        <p class="image-preview-filename" :title="image.name">{{ image.name }}</p>
+        <div class="image-preview-actions">
+          <button type="button" :aria-label="`Remove ${image.name}`" @click="remove(index)">
+            Remove
+          </button>
+        </div>
       </li>
     </ul>
   </section>

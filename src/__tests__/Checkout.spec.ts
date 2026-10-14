@@ -121,7 +121,9 @@ describe('checkout and confirmation', () => {
     expect(service.confirmation).toHaveBeenCalledWith('41', expect.any(AbortSignal))
     expect(app.get('main').text()).toContain('Pending — pay on delivery.')
     expect(app.get('main').text()).toContain('Order #41')
-    expect(app.get('header a[href="/cart"]').text()).toBe('Cart 0')
+    expect(app.get('header a[href="/cart"]').attributes('aria-label')).toBe(
+      'Shopping cart, 0 items',
+    )
     expect(window.sessionStorage.getItem('bookstore_checkout_pending_1')).toBeNull()
   })
   it('uses a selected address and masked simulated card', async () => {
@@ -160,12 +162,12 @@ describe('checkout and confirmation', () => {
     pending.resolve({ ...checkoutReview, cart: savedCart([]) })
     await flushPromises()
     expect(app.get('main').text()).toContain('Your cart is empty')
-    expect(app.find('form').exists()).toBe(false)
+    expect(app.find('main form').exists()).toBe(false)
   })
   it('requires an address and provides a link to add one', async () => {
     vi.mocked(AddressService.getAddresses).mockResolvedValueOnce([])
     const app = await render()
-    expect(app.get('button[type="submit"]').attributes('disabled')).toBeDefined()
+    expect(app.get('main button[type="submit"]').attributes('disabled')).toBeDefined()
     expect(app.get('main a[href="/addresses"]').text()).toBe('Manage addresses')
     await submit()
     expect(service.placeOrder).not.toHaveBeenCalled()
@@ -173,9 +175,9 @@ describe('checkout and confirmation', () => {
   it('allows cash without a saved card and disables card checkout until one exists', async () => {
     vi.mocked(PaymentMethodService.getPaymentMethods).mockResolvedValueOnce([])
     const app = await render()
-    expect(app.get('button[type="submit"]').attributes('disabled')).toBeUndefined()
+    expect(app.get('main button[type="submit"]').attributes('disabled')).toBeUndefined()
     await app.get('#checkout-payment').setValue('SIMULATED_CARD')
-    expect(app.get('button[type="submit"]').attributes('disabled')).toBeDefined()
+    expect(app.get('main button[type="submit"]').attributes('disabled')).toBeDefined()
     expect(app.get('main a[href="/payment-methods"]').text()).toBe('Manage payment methods')
   })
   it('prevents checkout of unavailable selections', async () => {
@@ -185,7 +187,7 @@ describe('checkout and confirmation', () => {
     })
     const app = await render()
     expect(app.get('main').text()).toContain('Unavailable or insufficient stock')
-    expect(app.get('button[type="submit"]').attributes('disabled')).toBeDefined()
+    expect(app.get('main button[type="submit"]').attributes('disabled')).toBeDefined()
   })
   it('requires a refreshed review and a new key after a price conflict', async () => {
     service.placeOrder.mockRejectedValueOnce({
@@ -211,7 +213,7 @@ describe('checkout and confirmation', () => {
     await submit()
     const first = service.placeOrder.mock.calls[0]![0]
     expect(app.get('main').text()).toContain('awaiting confirmation')
-    expect(app.find('form').exists()).toBe(false)
+    expect(app.find('main form').exists()).toBe(false)
     wrapper!.unmount()
     wrapper = undefined
     service.review.mockResolvedValueOnce({ ...checkoutReview, cart: savedCart([]) })
@@ -225,7 +227,7 @@ describe('checkout and confirmation', () => {
     const pending = deferred<Order>()
     service.placeOrder.mockReturnValueOnce(pending.promise)
     const app = await render()
-    await app.get('form').trigger('submit')
+    await app.get('main form').trigger('submit')
     await app
       .findAll('button')
       .find((button) => button.text() === 'Checking order…')!
@@ -239,7 +241,7 @@ describe('checkout and confirmation', () => {
     const app = await render()
     expect(app.get('[role="alert"]').text()).toContain('could not reach')
     await click('Refresh review')
-    expect(app.find('form').exists()).toBe(true)
+    expect(app.find('main form').exists()).toBe(true)
   })
   it('reloads confirmations and hides missing or foreign orders', async () => {
     service.confirmation.mockRejectedValueOnce({ isAxiosError: true, response: { status: 404 } })
@@ -268,7 +270,7 @@ describe('checkout and confirmation', () => {
     const pending = deferred<Order>()
     service.placeOrder.mockReturnValueOnce(pending.promise)
     const app = await render()
-    await app.get('form').trigger('submit')
+    await app.get('main form').trigger('submit')
     useAuthStore().clearAuth()
     await flushPromises()
     pending.resolve(placedOrder)

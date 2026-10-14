@@ -106,7 +106,7 @@ describe('saved payment methods', () => {
     await wrapper!.get('#payment-year').setValue(2030)
   }
   async function submit() {
-    await wrapper!.get('form').trigger('submit')
+    await wrapper!.get('main form').trigger('submit')
     await flushPromises()
   }
 
@@ -150,7 +150,7 @@ describe('saved payment methods', () => {
   it('sends trimmed display details and only the last four digits', async () => {
     const app = await render()
     await fillForm()
-    await app.get('form input[type="checkbox"]').setValue(true)
+    await app.get('main form input[type="checkbox"]').setValue(true)
     await submit()
     expect(service.addPaymentMethod).toHaveBeenCalledWith({
       provider: 'Visa',
@@ -160,7 +160,7 @@ describe('saved payment methods', () => {
       expiryYear: 2030,
       isDefault: true,
     })
-    expect(app.find('form').exists()).toBe(false)
+    expect(app.find('main form').exists()).toBe(false)
     expect(app.get('main').text()).toContain('Payment method saved.')
     expect(service.getPaymentMethods).toHaveBeenCalledTimes(2)
   })
@@ -186,15 +186,15 @@ describe('saved payment methods', () => {
     expect(app.get('[role="alert"]').text()).toContain('Expiry date must not be in the past.')
     expect((app.get('#payment-last-four').element as HTMLInputElement).value).toBe('1234')
     await click('Cancel')
-    expect(app.find('form').exists()).toBe(false)
+    expect(app.find('main form').exists()).toBe(false)
   })
   it('prevents repeated submissions while saving', async () => {
     const pending = deferred<PaymentMethod>()
     service.addPaymentMethod.mockReturnValueOnce(pending.promise)
     const app = await render()
     await fillForm()
-    await app.get('form').trigger('submit')
-    await app.get('form').trigger('submit')
+    await app.get('main form').trigger('submit')
+    await app.get('main form').trigger('submit')
     expect(service.addPaymentMethod).toHaveBeenCalledTimes(1)
     expect(app.get('fieldset').attributes('disabled')).toBeDefined()
     pending.resolve(visa)
@@ -233,7 +233,7 @@ describe('saved payment methods', () => {
     service.getPaymentMethods.mockReturnValueOnce(previous.promise)
     useAuthStore().setAuth({ token: 'other-token', user: { ...reader, id: 2 } })
     await flushPromises()
-    expect(app.find('form').exists()).toBe(false)
+    expect(app.find('main form').exists()).toBe(false)
     service.getPaymentMethods.mockResolvedValueOnce([])
     useAuthStore().setAuth({ token: 'third-token', user: { ...reader, id: 3 } })
     await flushPromises()

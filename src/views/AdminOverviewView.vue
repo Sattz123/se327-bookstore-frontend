@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 import { AdminDashboardService, type AdminDashboard } from '@/services/AdminDashboardService'
 import { useAuthStore } from '@/stores/auth'
 import { formatPrice } from '@/utils/catalog'
+import AppIcon from '@/components/AppIcon.vue'
 import { orderStatusClass, orderStatusLabels } from '@/utils/orders'
 
 const auth = useAuthStore()
@@ -72,7 +73,8 @@ onBeforeUnmount(() => controller?.abort())
     </div>
     <template v-else-if="data">
       <dl class="mt-7 grid gap-4 sm:grid-cols-3">
-        <div class="rounded-xl border border-slate-200 bg-white p-6">
+        <div class="admin-stat rounded-xl border border-slate-200 bg-white p-6">
+          <span class="admin-stat-icon"><AppIcon name="book" /></span>
           <dt>
             <RouterLink :to="{ name: 'admin-products' }" class="text-indigo-700 underline"
               >Total books</RouterLink
@@ -80,7 +82,8 @@ onBeforeUnmount(() => controller?.abort())
           </dt>
           <dd class="mt-3 text-3xl font-bold">{{ data.totalProducts.toLocaleString() }}</dd>
         </div>
-        <div class="rounded-xl border border-slate-200 bg-white p-6">
+        <div class="admin-stat rounded-xl border border-slate-200 bg-white p-6">
+          <span class="admin-stat-icon"><AppIcon name="orders" /></span>
           <dt>
             <RouterLink :to="{ name: 'admin-orders' }" class="text-indigo-700 underline"
               >Total orders</RouterLink
@@ -88,7 +91,8 @@ onBeforeUnmount(() => controller?.abort())
           </dt>
           <dd class="mt-3 text-3xl font-bold">{{ data.totalOrders.toLocaleString() }}</dd>
         </div>
-        <div class="rounded-xl border border-slate-200 bg-white p-6">
+        <div class="admin-stat rounded-xl border border-slate-200 bg-white p-6">
+          <span class="admin-stat-icon"><AppIcon name="users" /></span>
           <dt>
             <RouterLink :to="{ name: 'admin-customers' }" class="text-indigo-700 underline"
               >Total customers</RouterLink

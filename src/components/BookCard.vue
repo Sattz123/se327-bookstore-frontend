@@ -50,16 +50,14 @@ async function handleToggleWishlist() {
 </script>
 
 <template>
-  <article
-    class="relative flex h-full min-w-0 flex-col rounded-xl border border-slate-200 bg-white transition-shadow hover:shadow-md"
-  >
+  <article class="book-card">
     <button
       type="button"
       :disabled="wishlistBusy"
       :aria-pressed="isSaved"
       :aria-label="isSaved ? 'Remove from wishlist' : 'Save to wishlist'"
       :title="isSaved ? 'Remove from wishlist' : 'Save to wishlist'"
-      class="absolute top-3 right-3 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 shadow-xs backdrop-blur-xs transition hover:scale-110 disabled:opacity-50"
+      class="book-save disabled:opacity-50"
       @click.stop.prevent="handleToggleWishlist"
     >
       <svg
@@ -92,18 +90,15 @@ async function handleToggleWishlist() {
         />
       </svg>
     </button>
-    <RouterLink
-      :to="{ name: 'product-detail', params: { id: product.id } }"
-      class="flex flex-1 flex-col rounded-xl p-4"
-    >
+    <RouterLink :to="{ name: 'product-detail', params: { id: product.id } }" class="book-card-link">
       <BookCover :image="product.images[0]" :name="product.name" />
-      <p class="mt-4 text-xs font-semibold tracking-wide text-indigo-700">
+      <p class="book-category">
         {{ product.category.name }}
       </p>
-      <h2 class="mt-2 text-lg leading-snug font-semibold">{{ product.name }}</h2>
-      <p class="mt-1 text-sm text-slate-600">{{ product.author || 'Unknown author' }}</p>
-      <div class="mt-auto flex flex-wrap items-center justify-between gap-2 pt-4">
-        <p class="font-bold text-indigo-800">{{ formatPrice(product.price) }}</p>
+      <h2 class="">{{ product.name }}</h2>
+      <p class="book-author">{{ product.author || 'Unknown author' }}</p>
+      <div class="book-price flex flex-wrap items-center justify-between gap-2">
+        <p class="font-medium">{{ formatPrice(product.price) }}</p>
         <p v-if="product.stockQuantity === 0" class="text-xs font-medium text-slate-500">
           Out of stock
         </p>

@@ -82,7 +82,7 @@ describe('catalog discovery', () => {
     featured.mockRejectedValueOnce(new Error('Offline'))
     await router.push('/')
     await flushPromises()
-    expect(app.get('[role="alert"]').text()).toContain("We couldn't load the latest")
+    expect(app.get('[role="alert"]').text()).toContain("We couldn't load the books")
     await app.get('[role="alert"] button').trigger('click')
     await flushPromises()
     expect(app.find('[role="alert"]').exists()).toBe(false)
@@ -141,7 +141,7 @@ describe('catalog discovery', () => {
     const app = await renderAt('/products?page=3')
     await app.get('#book-search').setValue('  space  ')
     await app.get('#category-filter').setValue('2')
-    await app.get('form').trigger('submit')
+    await app.get('form[aria-label="Search books"]').trigger('submit')
     await vi.waitFor(() =>
       expect(router.currentRoute.value.query).toEqual({ q: 'space', categoryId: '2' }),
     )
@@ -178,7 +178,7 @@ describe('catalog discovery', () => {
   it('keeps category-page search in the URL and opens book details', async () => {
     const app = await renderAt('/categories/2?page=2')
     await app.get('#book-search').setValue('science')
-    await app.get('form').trigger('submit')
+    await app.get('form[aria-label="Search books"]').trigger('submit')
     await vi.waitFor(() =>
       expect(router.currentRoute.value.fullPath).toBe('/categories/2?q=science'),
     )
@@ -193,7 +193,7 @@ describe('catalog discovery', () => {
   it('switches category filters from a category page', async () => {
     const app = await renderAt('/categories/1')
     await app.get('#category-filter').setValue('2')
-    await app.get('form').trigger('submit')
+    await app.get('form[aria-label="Search books"]').trigger('submit')
     await vi.waitFor(() =>
       expect(router.currentRoute.value.fullPath).toBe('/products?categoryId=2'),
     )

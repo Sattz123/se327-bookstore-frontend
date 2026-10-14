@@ -118,7 +118,6 @@ async function updateStatus() {
       status === 'CANCELLED'
         ? 'Order cancelled. Purchased quantities were restored once.'
         : 'Order status updated.'
-    await loadList()
   } catch (cause) {
     if (session === epoch) detailError.value = failure(cause)
   } finally {
@@ -154,7 +153,7 @@ watch(
     message.value = ''
     selectedStatus.value = ''
     if (auth.isAuthenticated && auth.isAdmin) {
-      void loadList()
+      if (!route.params.id) void loadList()
       void loadDetail()
     }
   },
@@ -169,7 +168,13 @@ onBeforeUnmount(() => {
 
 <template>
   <section :aria-busy="loading || detailLoading || busy">
-    <h1 class="text-3xl font-bold">Orders</h1>
+    <h1 class="text-3xl font-bold">{{ route.params.id ? 'Order details' : 'Orders' }}</h1>
+    <RouterLink
+      v-if="route.params.id"
+      :to="{ name: 'admin-orders' }"
+      class="mt-3 inline-block text-sm text-indigo-700"
+      >← Back to orders</RouterLink
+    >
     <p class="mt-2 text-slate-600">
       Find orders, review purchase details, and update their status.
     </p>
@@ -285,120 +290,122 @@ onBeforeUnmount(() => {
         >Close order details</RouterLink
       >
     </article>
-    <form
-      class="mt-7 flex flex-wrap items-end gap-3"
-      aria-label="Filter orders"
-      @submit.prevent="applyFilters"
-    >
-      <fieldset :disabled="busy || loading" class="contents">
-        <div>
-          <label for="order-search" class="block text-sm font-medium"
-            >Order ID, customer name or email</label
-          ><input
-            id="order-search"
-            v-model="search"
-            type="search"
-            maxlength="100"
-            class="mt-1 rounded-lg border border-slate-300 bg-white p-2"
-          />
-        </div>
-        <div>
-          <label for="order-filter" class="block text-sm font-medium">Status</label
-          ><select
-            id="order-filter"
-            v-model="statusFilter"
-            class="mt-1 rounded-lg border border-slate-300 bg-white p-2"
-          >
-            <option value="">All statuses</option>
-            <option v-for="status in statuses" :key="status" :value="status">
-              {{ orderStatusLabels[status] }}
-            </option>
-          </select>
-        </div>
-        <button type="submit" class="rounded-lg bg-indigo-700 px-4 py-2 font-semibold text-white">
-          Search
+    <template v-if="!route.params.id">
+      <form
+        class="admin-filter-bar mt-7 flex flex-wrap items-end gap-3"
+        aria-label="Filter orders"
+        @submit.prevent="applyFilters"
+      >
+        <fieldset :disabled="busy || loading" class="contents">
+          <div>
+            <label for="order-search" class="block text-sm font-medium"
+              >Order ID, customer name or email</label
+            ><input
+              id="order-search"
+              v-model="search"
+              type="search"
+              maxlength="100"
+              class="mt-1 rounded-lg border border-slate-300 bg-white p-2"
+            />
+          </div>
+          <div>
+            <label for="order-filter" class="block text-sm font-medium">Status</label
+            ><select
+              id="order-filter"
+              v-model="statusFilter"
+              class="mt-1 rounded-lg border border-slate-300 bg-white p-2"
+            >
+              <option value="">All statuses</option>
+              <option v-for="status in statuses" :key="status" :value="status">
+                {{ orderStatusLabels[status] }}
+              </option>
+            </select>
+          </div>
+          <button type="submit" class="rounded-lg bg-indigo-700 px-4 py-2 font-semibold text-white">
+            Search
+          </button>
+        </fieldset>
+      </form>
+      <p v-if="loading" role="status" class="mt-6">Loading orders…</p>
+      <div v-else-if="error" class="mt-6">
+        <p role="alert" class="text-rose-700">{{ error }}</p>
+        <button type="button" class="mt-3 text-indigo-700 underline" @click="loadList">
+          Try again
         </button>
-      </fieldset>
-    </form>
-    <p v-if="loading" role="status" class="mt-6">Loading orders…</p>
-    <div v-else-if="error" class="mt-6">
-      <p role="alert" class="text-rose-700">{{ error }}</p>
-      <button type="button" class="mt-3 text-indigo-700 underline" @click="loadList">
-        Try again
-      </button>
-    </div>
-    <p v-else-if="!result?.content.length" class="mt-6">No orders match your filters.</p>
-    <div v-else class="mt-6 overflow-x-auto rounded-xl border border-slate-200 bg-white">
-      <table class="w-full text-left text-sm">
-        <caption class="sr-only">
-          Order list
-        </caption>
-        <thead class="bg-slate-100">
-          <tr>
-            <th scope="col" class="p-4">Order</th>
-            <th scope="col" class="p-4">Customer</th>
-            <th scope="col" class="p-4">Status</th>
-            <th scope="col" class="p-4">Payment</th>
-            <th scope="col" class="p-4">Total</th>
-            <th scope="col" class="p-4">Details</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="order in result.content" :key="order.id" class="border-t border-slate-200">
-            <td class="p-4">
-              <p class="font-semibold">#{{ order.id }}</p>
-              <time class="text-xs text-slate-500" :datetime="order.createdAt">{{
-                date(order.createdAt)
-              }}</time>
-            </td>
-            <td class="p-4">
-              <p>{{ order.customerName }}</p>
-              <p class="text-xs text-slate-500">{{ order.customerEmail }}</p>
-            </td>
-            <td class="p-4">
-              <span
-                class="whitespace-nowrap rounded-full px-3 py-1"
-                :class="orderStatusClass(order.status)"
-                >{{ orderStatusLabels[order.status] }}</span
-              >
-            </td>
-            <td class="p-4">{{ order.paymentDisplay }}</td>
-            <td class="whitespace-nowrap p-4">{{ formatPrice(order.total) }}</td>
-            <td class="p-4">
-              <button
-                type="button"
-                :disabled="busy"
-                class="font-semibold text-indigo-700 underline disabled:opacity-50"
-                @click="openOrder(order.id)"
-              >
-                View
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <nav
-      v-if="result && result.totalPages > 1"
-      aria-label="Order pagination"
-      class="mt-6 flex gap-5"
-    >
-      <button
-        type="button"
-        :disabled="page <= 1 || loading || busy"
-        class="text-indigo-700 disabled:opacity-50"
-        @click="changePage(page - 1)"
+      </div>
+      <p v-else-if="!result?.content.length" class="mt-6">No orders match your filters.</p>
+      <div v-else class="mt-6 overflow-x-auto rounded-xl border border-slate-200 bg-white">
+        <table class="w-full text-left text-sm">
+          <caption class="sr-only">
+            Order list
+          </caption>
+          <thead class="bg-slate-100">
+            <tr>
+              <th scope="col" class="p-4">Order</th>
+              <th scope="col" class="p-4">Customer</th>
+              <th scope="col" class="p-4">Status</th>
+              <th scope="col" class="p-4">Payment</th>
+              <th scope="col" class="p-4">Total</th>
+              <th scope="col" class="p-4">Details</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="order in result.content" :key="order.id" class="border-t border-slate-200">
+              <td class="p-4">
+                <p class="font-semibold">#{{ order.id }}</p>
+                <time class="text-xs text-slate-500" :datetime="order.createdAt">{{
+                  date(order.createdAt)
+                }}</time>
+              </td>
+              <td class="p-4">
+                <p>{{ order.customerName }}</p>
+                <p class="text-xs text-slate-500">{{ order.customerEmail }}</p>
+              </td>
+              <td class="p-4">
+                <span
+                  class="whitespace-nowrap rounded-full px-3 py-1"
+                  :class="orderStatusClass(order.status)"
+                  >{{ orderStatusLabels[order.status] }}</span
+                >
+              </td>
+              <td class="p-4">{{ order.paymentDisplay }}</td>
+              <td class="whitespace-nowrap p-4">{{ formatPrice(order.total) }}</td>
+              <td class="p-4">
+                <button
+                  type="button"
+                  :disabled="busy"
+                  class="font-semibold text-indigo-700 underline disabled:opacity-50"
+                  @click="openOrder(order.id)"
+                >
+                  View
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <nav
+        v-if="result && result.totalPages > 1"
+        aria-label="Order pagination"
+        class="mt-6 flex gap-5"
       >
-        Previous</button
-      ><span>Page {{ page }} of {{ result.totalPages }} · {{ result.totalElements }} orders</span
-      ><button
-        type="button"
-        :disabled="page >= result.totalPages || loading || busy"
-        class="text-indigo-700 disabled:opacity-50"
-        @click="changePage(page + 1)"
-      >
-        Next
-      </button>
-    </nav>
+        <button
+          type="button"
+          :disabled="page <= 1 || loading || busy"
+          class="text-indigo-700 disabled:opacity-50"
+          @click="changePage(page - 1)"
+        >
+          Previous</button
+        ><span>Page {{ page }} of {{ result.totalPages }} · {{ result.totalElements }} orders</span
+        ><button
+          type="button"
+          :disabled="page >= result.totalPages || loading || busy"
+          class="text-indigo-700 disabled:opacity-50"
+          @click="changePage(page + 1)"
+        >
+          Next
+        </button>
+      </nav>
+    </template>
   </section>
 </template>

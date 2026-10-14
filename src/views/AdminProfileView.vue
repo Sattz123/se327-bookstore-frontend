@@ -155,7 +155,7 @@ onBeforeUnmount(() => {
       <p role="alert" class="text-rose-700">{{ loadError }}</p>
       <button type="button" class="mt-3 text-indigo-700 underline" @click="load">Try again</button>
     </div>
-    <div v-else-if="profile" class="mt-7 grid gap-6 lg:grid-cols-2">
+    <div v-else-if="profile" class="mt-7 grid gap-6 xl:grid-cols-2">
       <form class="rounded-xl border border-slate-200 bg-white p-6" @submit.prevent="save">
         <h2 class="text-xl font-semibold">Profile information</h2>
         <p class="mt-2 text-sm text-slate-500">
