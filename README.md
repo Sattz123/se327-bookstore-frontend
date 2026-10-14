@@ -29,6 +29,24 @@ See [Vite Configuration Reference](https://vite.dev/config/).
 npm install
 ```
 
+On first setup, copy `.env.example` to `.env` in this frontend folder (PowerShell: `Copy-Item .env.example .env`). Keep your existing `.env` if it already exists. Commit the example and `package-lock.json`; `.env` is ignored by Git.
+
+### Backend connection
+
+`VITE_BACKEND_URL` sets the Axios base URL and defaults to `http://localhost:8080/api` when absent. This is the frontend's own setting; it does not read the backend's `.env`. Restart Vite after changing it. Vite includes `VITE_` settings in the browser bundle, so they must not contain secrets. Production builds use the value present when building.
+
+Import the shared client from `@/services/apiClient` in future API services. For example, `apiClient.get('/products')` will request `http://localhost:8080/api/products` with the example configuration. Product endpoints will be added in a later stage.
+
+The client accepts JSON responses and uses a 10-second timeout. Feature services handle responses and errors as they are implemented.
+
+The development server uses `http://localhost:5173` and stops if that port is occupied. The backend's `FRONTEND_ORIGIN` must match this origin for browser API requests.
+
+### Tailwind CSS
+
+Tailwind is installed through its Vite plugin. `src/assets/main.css` imports Tailwind and is loaded by `src/main.ts`. Use utility classes in Vue templates when implementing the layout in the next step.
+
+References: [Tailwind with Vite](https://tailwindcss.com/docs/installation/using-vite), [Axios instances](https://axios-http.com/docs/instance), and [Vite environment settings](https://vite.dev/guide/env-and-mode).
+
 ### Compile and Hot-Reload for Development
 
 ```sh
