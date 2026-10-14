@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { isAxiosError } from 'axios'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { ProfileService } from '@/services/ProfileService'
 
 const authStore = useAuthStore()
+const router = useRouter()
 
 // Profile details
 const username = ref('')
@@ -25,34 +28,53 @@ const confirmPassword = ref('')
 const isPasswordLoading = ref(false)
 const passwordSuccessMessage = ref('')
 const passwordErrorMessage = ref('')
-
-onMounted(async () => {
-  await loadProfile()
-})
+const fetching = ref(false)
+const loaded = ref(false)
+const loadError = ref('')
+const busy = computed(() => fetching.value || isProfileLoading.value || isPasswordLoading.value)
+let active = true
+let controller: AbortController | undefined
+function currentSession(token: string | null) {
+  return active && !!token && authStore.token === token
+}
+function checkSessionError(cause: unknown) {
+  if (isAxiosError(cause) && cause.response?.status === 401) {
+    authStore.clearAuth()
+    void router.replace({ name: 'login', query: { redirect: '/profile' } })
+  }
+}
 
 async function loadProfile() {
+  controller?.abort()
+  const request = new AbortController()
+  controller = request
+  const token = authStore.token
+  fetching.value = true
+  loaded.value = false
+  loadError.value = ''
   try {
-    const user = await ProfileService.getProfile()
+    const user = await ProfileService.getProfile(request.signal)
+    if (request.signal.aborted || !currentSession(token)) return
     username.value = user.username
     email.value = user.email
     phone.value = user.phone ?? ''
     avatarUrl.value = user.avatarUrl ?? ''
     role.value = user.role
     createdAt.value = user.createdAt
-  } catch {
-    // Fallback to store if available
-    if (authStore.currentUser) {
-      username.value = authStore.currentUser.username
-      email.value = authStore.currentUser.email
-      phone.value = authStore.currentUser.phone ?? ''
-      avatarUrl.value = authStore.currentUser.avatarUrl ?? ''
-      role.value = authStore.currentUser.role
-      createdAt.value = authStore.currentUser.createdAt
+    loaded.value = true
+  } catch (cause) {
+    if (!request.signal.aborted && currentSession(token)) {
+      checkSessionError(cause)
+      loadError.value = 'Unable to load your profile. Please try again.'
     }
+  } finally {
+    if (!request.signal.aborted && active) fetching.value = false
   }
 }
 
 async function handleProfileUpdate() {
+  if (busy.value || !loaded.value) return
+  const token = authStore.token
   profileSuccessMessage.value = ''
   profileErrorMessage.value = ''
 
@@ -70,9 +92,12 @@ async function handleProfileUpdate() {
       avatarUrl: avatarUrl.value.trim() || null,
     })
 
+    if (!currentSession(token)) return
     authStore.setAuth(updated)
     profileSuccessMessage.value = 'Profile updated successfully!'
   } catch (err: unknown) {
+    if (!currentSession(token)) return
+    checkSessionError(err)
     const errorResponse = (
       err as {
         response?: {
@@ -99,6 +124,8 @@ async function handleProfileUpdate() {
 }
 
 async function handlePasswordChange() {
+  if (busy.value || !loaded.value) return
+  const token = authStore.token
   passwordSuccessMessage.value = ''
   passwordErrorMessage.value = ''
 
@@ -123,12 +150,14 @@ async function handlePasswordChange() {
       currentPassword: currentPassword.value,
       newPassword: newPassword.value,
     })
-
+    if (!currentSession(token)) return
     passwordSuccessMessage.value = response.message || 'Password changed successfully!'
     currentPassword.value = ''
     newPassword.value = ''
     confirmPassword.value = ''
   } catch (err: unknown) {
+    if (!currentSession(token)) return
+    checkSessionError(err)
     const errorResponse = (
       err as {
         response?: {
@@ -148,10 +177,31 @@ async function handlePasswordChange() {
     isPasswordLoading.value = false
   }
 }
+watch(
+  () => authStore.currentUser?.id,
+  () => {
+    controller?.abort()
+    loaded.value = false
+    username.value = email.value = phone.value = avatarUrl.value = createdAt.value = ''
+    currentPassword.value = newPassword.value = confirmPassword.value = ''
+    profileSuccessMessage.value =
+      profileErrorMessage.value =
+      passwordSuccessMessage.value =
+      passwordErrorMessage.value =
+        ''
+    if (authStore.isAuthenticated) void loadProfile()
+  },
+  { immediate: true, flush: 'sync' },
+)
+onBeforeUnmount(() => {
+  active = false
+  controller?.abort()
+  currentPassword.value = newPassword.value = confirmPassword.value = ''
+})
 </script>
 
 <template>
-  <main class="mx-auto max-w-4xl px-5 py-10 sm:px-8">
+  <section class="mx-auto max-w-4xl" :aria-busy="busy">
     <div class="mb-8">
       <h1 class="text-3xl font-bold tracking-tight text-slate-900">My Account</h1>
       <p class="mt-1 text-sm text-slate-600">
@@ -159,7 +209,14 @@ async function handlePasswordChange() {
       </p>
     </div>
 
-    <div class="grid grid-cols-1 gap-8 md:grid-cols-3">
+    <p v-if="fetching" role="status">Loading your profile…</p>
+    <div v-else-if="loadError">
+      <p role="alert" class="text-rose-700">{{ loadError }}</p>
+      <button type="button" class="mt-3 text-indigo-700 underline" @click="loadProfile">
+        Try again
+      </button>
+    </div>
+    <div v-else-if="loaded" class="grid min-w-0 grid-cols-1 gap-6 md:grid-cols-3">
       <!-- Account Summary Card -->
       <div class="md:col-span-1">
         <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
@@ -227,68 +284,80 @@ async function handlePasswordChange() {
           </div>
 
           <form id="profile-form" class="mt-6 space-y-4" @submit.prevent="handleProfileUpdate">
-            <div>
-              <label for="profile-name" class="block text-sm font-medium text-slate-700">
-                Full name
-              </label>
-              <input
-                id="profile-name"
-                v-model="username"
-                type="text"
-                required
-                class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-indigo-600 focus:outline-hidden focus:ring-1 focus:ring-indigo-600"
-              />
-            </div>
+            <fieldset :disabled="busy" class="min-w-0 space-y-4">
+              <legend class="sr-only">Edit profile information</legend>
+              <div>
+                <label for="profile-name" class="block text-sm font-medium text-slate-700">
+                  Full name
+                </label>
+                <input
+                  id="profile-name"
+                  minlength="2"
+                  maxlength="100"
+                  autocomplete="name"
+                  v-model="username"
+                  type="text"
+                  required
+                  class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-indigo-600 focus:outline-hidden focus:ring-1 focus:ring-indigo-600"
+                />
+              </div>
 
-            <div>
-              <label for="profile-email" class="block text-sm font-medium text-slate-700">
-                Email address
-              </label>
-              <input
-                id="profile-email"
-                v-model="email"
-                type="email"
-                required
-                class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-indigo-600 focus:outline-hidden focus:ring-1 focus:ring-indigo-600"
-              />
-            </div>
+              <div>
+                <label for="profile-email" class="block text-sm font-medium text-slate-700">
+                  Email address
+                </label>
+                <input
+                  id="profile-email"
+                  maxlength="255"
+                  autocomplete="email"
+                  v-model="email"
+                  type="email"
+                  required
+                  class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-indigo-600 focus:outline-hidden focus:ring-1 focus:ring-indigo-600"
+                />
+              </div>
 
-            <div>
-              <label for="profile-phone" class="block text-sm font-medium text-slate-700">
-                Phone number
-              </label>
-              <input
-                id="profile-phone"
-                v-model="phone"
-                type="tel"
-                placeholder="0812345678"
-                class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-indigo-600 focus:outline-hidden focus:ring-1 focus:ring-indigo-600"
-              />
-            </div>
+              <div>
+                <label for="profile-phone" class="block text-sm font-medium text-slate-700">
+                  Phone number
+                </label>
+                <input
+                  id="profile-phone"
+                  maxlength="20"
+                  autocomplete="tel"
+                  v-model="phone"
+                  type="tel"
+                  placeholder="0812345678"
+                  class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-indigo-600 focus:outline-hidden focus:ring-1 focus:ring-indigo-600"
+                />
+              </div>
 
-            <div>
-              <label for="profile-avatar" class="block text-sm font-medium text-slate-700">
-                Avatar image URL <span class="text-xs text-slate-400 font-normal">(optional)</span>
-              </label>
-              <input
-                id="profile-avatar"
-                v-model="avatarUrl"
-                type="url"
-                placeholder="https://example.com/avatar.jpg"
-                class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-indigo-600 focus:outline-hidden focus:ring-1 focus:ring-indigo-600"
-              />
-            </div>
+              <div>
+                <label for="profile-avatar" class="block text-sm font-medium text-slate-700">
+                  Avatar image URL
+                  <span class="text-xs text-slate-400 font-normal">(optional)</span>
+                </label>
+                <input
+                  id="profile-avatar"
+                  maxlength="500"
+                  v-model="avatarUrl"
+                  type="url"
+                  placeholder="https://example.com/avatar.jpg"
+                  class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-indigo-600 focus:outline-hidden focus:ring-1 focus:ring-indigo-600"
+                />
+              </div>
 
-            <div class="pt-2">
-              <button
-                type="submit"
-                :disabled="isProfileLoading"
-                class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-xs transition-colors hover:bg-indigo-700 focus:outline-hidden focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 disabled:opacity-60"
-              >
-                <span v-if="isProfileLoading">Saving changes...</span>
-                <span v-else>Save Profile</span>
-              </button>
-            </div>
+              <div class="pt-2">
+                <button
+                  type="submit"
+                  :disabled="busy"
+                  class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-xs transition-colors hover:bg-indigo-700 focus:outline-hidden focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 disabled:opacity-60"
+                >
+                  <span v-if="isProfileLoading">Saving changes...</span>
+                  <span v-else>Save Profile</span>
+                </button>
+              </div>
+            </fieldset>
           </form>
         </div>
 
@@ -314,66 +383,71 @@ async function handlePasswordChange() {
           </div>
 
           <form id="password-form" class="mt-6 space-y-4" @submit.prevent="handlePasswordChange">
-            <div>
-              <label for="current-password" class="block text-sm font-medium text-slate-700">
-                Current password
-              </label>
-              <input
-                id="current-password"
-                v-model="currentPassword"
-                type="password"
-                autocomplete="current-password"
-                required
-                class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-indigo-600 focus:outline-hidden focus:ring-1 focus:ring-indigo-600"
-                placeholder="••••••••"
-              />
-            </div>
+            <fieldset :disabled="busy" class="min-w-0 space-y-4">
+              <legend class="sr-only">Change your password</legend>
+              <div>
+                <label for="current-password" class="block text-sm font-medium text-slate-700">
+                  Current password
+                </label>
+                <input
+                  id="current-password"
+                  v-model="currentPassword"
+                  type="password"
+                  autocomplete="current-password"
+                  required
+                  class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-indigo-600 focus:outline-hidden focus:ring-1 focus:ring-indigo-600"
+                  placeholder="••••••••"
+                />
+              </div>
 
-            <div>
-              <label for="new-password" class="block text-sm font-medium text-slate-700">
-                New password
-              </label>
-              <input
-                id="new-password"
-                v-model="newPassword"
-                type="password"
-                autocomplete="new-password"
-                required
-                minlength="6"
-                class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-indigo-600 focus:outline-hidden focus:ring-1 focus:ring-indigo-600"
-                placeholder="At least 6 characters"
-              />
-            </div>
+              <div>
+                <label for="new-password" class="block text-sm font-medium text-slate-700">
+                  New password
+                </label>
+                <input
+                  id="new-password"
+                  maxlength="100"
+                  v-model="newPassword"
+                  type="password"
+                  autocomplete="new-password"
+                  required
+                  minlength="6"
+                  class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-indigo-600 focus:outline-hidden focus:ring-1 focus:ring-indigo-600"
+                  placeholder="At least 6 characters"
+                />
+              </div>
 
-            <div>
-              <label for="confirm-new-password" class="block text-sm font-medium text-slate-700">
-                Confirm new password
-              </label>
-              <input
-                id="confirm-new-password"
-                v-model="confirmPassword"
-                type="password"
-                autocomplete="new-password"
-                required
-                minlength="6"
-                class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-indigo-600 focus:outline-hidden focus:ring-1 focus:ring-indigo-600"
-                placeholder="Re-enter new password"
-              />
-            </div>
+              <div>
+                <label for="confirm-new-password" class="block text-sm font-medium text-slate-700">
+                  Confirm new password
+                </label>
+                <input
+                  id="confirm-new-password"
+                  maxlength="100"
+                  v-model="confirmPassword"
+                  type="password"
+                  autocomplete="new-password"
+                  required
+                  minlength="6"
+                  class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-indigo-600 focus:outline-hidden focus:ring-1 focus:ring-indigo-600"
+                  placeholder="Re-enter new password"
+                />
+              </div>
 
-            <div class="pt-2">
-              <button
-                type="submit"
-                :disabled="isPasswordLoading"
-                class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-xs transition-colors hover:bg-indigo-700 focus:outline-hidden focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 disabled:opacity-60"
-              >
-                <span v-if="isPasswordLoading">Updating password...</span>
-                <span v-else>Update Password</span>
-              </button>
-            </div>
+              <div class="pt-2">
+                <button
+                  type="submit"
+                  :disabled="busy"
+                  class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-xs transition-colors hover:bg-indigo-700 focus:outline-hidden focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 disabled:opacity-60"
+                >
+                  <span v-if="isPasswordLoading">Updating password...</span>
+                  <span v-else>Update Password</span>
+                </button>
+              </div>
+            </fieldset>
           </form>
         </div>
       </div>
     </div>
-  </main>
+  </section>
 </template>

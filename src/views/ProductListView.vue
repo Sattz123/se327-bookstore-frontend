@@ -206,7 +206,7 @@ onBeforeUnmount(() => controller?.abort())
       <nav
         v-if="results.totalPages > 0"
         aria-label="Book pages"
-        class="mt-8 flex items-center justify-center gap-5"
+        class="mt-8 flex flex-wrap items-center justify-center gap-5"
       >
         <RouterLink
           v-if="page > 1"

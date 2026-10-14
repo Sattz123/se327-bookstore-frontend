@@ -53,6 +53,7 @@ async function verifyToken(tokenStr: string) {
 }
 
 async function handleResetPassword() {
+  if (isSubmitting.value || !isTokenValid.value) return
   formErrorMessage.value = ''
 
   if (!newPassword.value || !confirmPassword.value) {
@@ -113,8 +114,8 @@ async function handleResetPassword() {
 </script>
 
 <template>
-  <main class="mx-auto max-w-md px-5 py-12">
-    <div class="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+  <section class="mx-auto max-w-md">
+    <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
       <div class="mb-8 text-center">
         <h1 class="text-2xl font-bold tracking-tight text-slate-900">Reset your password</h1>
         <p class="mt-2 text-sm text-slate-600">Enter a secure new password for your account.</p>
@@ -221,5 +222,5 @@ async function handleResetPassword() {
         </form>
       </div>
     </div>
-  </main>
+  </section>
 </template>

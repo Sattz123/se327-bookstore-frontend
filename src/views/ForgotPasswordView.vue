@@ -9,6 +9,7 @@ const successMessage = ref('')
 const errorMessage = ref('')
 
 async function handleSubmit() {
+  if (isSubmitting.value) return
   errorMessage.value = ''
   successMessage.value = ''
 
@@ -52,8 +53,8 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <main class="mx-auto max-w-md px-5 py-12">
-    <div class="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+  <section class="mx-auto max-w-md">
+    <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
       <div class="mb-8 text-center">
         <h1 class="text-2xl font-bold tracking-tight text-slate-900">Forgot your password?</h1>
         <p class="mt-2 text-sm text-slate-600">
@@ -116,5 +117,5 @@ async function handleSubmit() {
         </RouterLink>
       </div>
     </div>
-  </main>
+  </section>
 </template>

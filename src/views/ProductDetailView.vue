@@ -16,13 +16,16 @@ const router = useRouter()
 const hasPinia = inject(piniaSymbol, null) !== null
 const authStore = hasPinia ? useAuthStore() : null
 const wishlistStore = hasPinia ? useWishlistStore() : null
+const wishlistBusy = ref(false)
+const wishlistError = ref('')
 
 const isSaved = computed(() => {
   return product.value && wishlistStore ? wishlistStore.hasItem(product.value.id) : false
 })
 
 async function handleToggleWishlist() {
-  if (!product.value) return
+  if (!product.value || wishlistBusy.value) return
+  wishlistError.value = ''
   if (!authStore?.isAuthenticated) {
     if (router) {
       await router.push({ name: 'login' })
@@ -30,7 +33,14 @@ async function handleToggleWishlist() {
     return
   }
   if (wishlistStore) {
-    await wishlistStore.toggleWishlist(product.value)
+    wishlistBusy.value = true
+    try {
+      await wishlistStore.toggleWishlist(product.value)
+    } catch {
+      wishlistError.value = 'Unable to update your wishlist. Please try again.'
+    } finally {
+      wishlistBusy.value = false
+    }
   }
 }
 
@@ -159,6 +169,8 @@ onBeforeUnmount(() => controller?.abort())
                 : 'border-slate-300 bg-white text-slate-700 hover:border-slate-400 hover:bg-slate-50'
             "
             :aria-label="isSaved ? 'Remove from wishlist' : 'Save to wishlist'"
+            :disabled="wishlistBusy"
+            :aria-pressed="!!isSaved"
             @click="handleToggleWishlist"
           >
             <svg
@@ -192,6 +204,9 @@ onBeforeUnmount(() => controller?.abort())
             </svg>
             <span>{{ isSaved ? 'Saved in wishlist' : 'Save to wishlist' }}</span>
           </button>
+          <p v-if="wishlistError" role="alert" class="mt-3 text-sm text-rose-700">
+            {{ wishlistError }}
+          </p>
         </div>
         <AddToCartForm :key="product.id" :product="product" />
         <h2 class="mt-8 text-lg font-semibold">About this book</h2>
