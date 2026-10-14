@@ -4,11 +4,13 @@ import { RouterLink, useRouter } from 'vue-router'
 import { piniaSymbol } from 'pinia'
 import { useAuthStore } from '@/stores/auth'
 import { useWishlistStore } from '@/stores/wishlist'
+import { useCartStore } from '@/stores/cart'
 
 const router = useRouter()
 const hasPinia = inject(piniaSymbol, null) !== null
 const authStore = hasPinia ? useAuthStore() : null
 const wishlistStore = hasPinia ? useWishlistStore() : null
+const cartStore = hasPinia ? useCartStore() : null
 
 const links = [
   { name: 'home', label: 'Home' },
@@ -73,6 +75,13 @@ async function handleLogout() {
           class="flex items-center gap-2 border-t border-slate-200 pt-3 sm:border-t-0 sm:border-l sm:pl-4 sm:pt-0"
         >
           <template v-if="isAuthenticated">
+            <RouterLink
+              :to="{ name: 'cart' }"
+              class="rounded-lg px-2.5 py-1 text-sm font-medium text-slate-700 hover:bg-slate-100"
+              exact-active-class="bg-indigo-50 text-indigo-800"
+              >Cart
+              <span aria-label="Cart item count">{{ cartStore?.count ?? 0 }}</span></RouterLink
+            >
             <RouterLink
               :to="{ name: 'payment-methods' }"
               class="rounded-lg px-2.5 py-1 text-sm font-medium text-slate-700 hover:bg-slate-100"
