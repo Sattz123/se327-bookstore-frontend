@@ -143,6 +143,17 @@ async function remove(id: number) {
         <p class="mt-2 text-sm text-slate-600">
           Prices reflect the current catalog. Items are not reserved.
         </p>
+        <RouterLink
+          v-if="
+            !cart.loading &&
+            !cart.busy &&
+            !cart.error &&
+            cart.cart.items.every((item) => item.available)
+          "
+          :to="{ name: 'checkout' }"
+          class="mt-5 inline-block rounded-lg bg-indigo-700 px-5 py-3 font-semibold text-white"
+          >Proceed to checkout</RouterLink
+        >
       </div>
     </template>
   </section>
