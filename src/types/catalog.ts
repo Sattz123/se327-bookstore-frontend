@@ -17,3 +17,17 @@ export interface Product {
   images: string[]
   formats: BookFormat[]
 }
+
+export interface ProductPage {
+  content: Product[]
+  page: number
+  size: number
+  totalElements: number
+  totalPages: number
+}
+
+export interface ProductQuery {
+  q?: string
+  categoryId?: string
+  page?: number
+}

@@ -28,9 +28,14 @@ export function createBookstoreRouter(
       {
         path: '/categories',
         name: 'categories',
-        component: () => import('@/views/ComingSoonView.vue'),
-        props: { title: 'Categories', description: 'Explore books by the topics you love.' },
+        component: () => import('@/views/CategoryListView.vue'),
         meta: { title: 'Categories' },
+      },
+      {
+        path: '/categories/:id',
+        name: 'category-products',
+        component: () => import('@/views/ProductListView.vue'),
+        meta: { title: 'Category books' },
       },
       {
         path: '/contact',

@@ -5,11 +5,20 @@ import type { AxiosResponse } from 'axios'
 import App from '@/App.vue'
 import { createBookstoreRouter } from '@/router'
 import ProductService from '@/services/ProductService'
-import type { Product } from '@/types/catalog'
-import { book, deferred, response } from './fixtures/catalog'
+import CategoryService from '@/services/CategoryService'
+import type { Product, ProductPage } from '@/types/catalog'
+import { book, deferred, response, page } from './fixtures/catalog'
 
 vi.mock('@/services/ProductService', () => ({
   default: { getProducts: vi.fn(), getProduct: vi.fn() },
+}))
+
+vi.mock('@/services/CategoryService', () => ({
+  default: {
+    getCategories: vi
+      .fn()
+      .mockResolvedValue({ data: [{ id: 1, name: 'Fiction', imageUrl: null }] }),
+  },
 }))
 
 describe('product catalog pages', () => {
@@ -21,8 +30,9 @@ describe('product catalog pages', () => {
   beforeEach(() => {
     vi.resetAllMocks()
     vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
-    getProducts.mockResolvedValue(response([book()]))
+    getProducts.mockResolvedValue(response(page([book()])))
     getProduct.mockResolvedValue(response(book()))
+    vi.mocked(CategoryService.getCategories).mockResolvedValue(response([book().category]))
   })
 
   afterEach(() => {
@@ -40,16 +50,18 @@ describe('product catalog pages', () => {
   }
 
   it('shows loading before rendering cards from the API', async () => {
-    const pending = deferred<AxiosResponse<Product[]>>()
+    const pending = deferred<AxiosResponse<ProductPage>>()
     getProducts.mockReturnValueOnce(pending.promise)
     const app = await renderAt('/products')
     expect(app.get('[role="status"]').text()).toBe('Loading books…')
     expect(app.get('section').attributes('aria-busy')).toBe('true')
 
-    pending.resolve(response([book(), book({ id: 2, name: 'Second book', stockQuantity: 0 })]))
+    pending.resolve(
+      response(page([book(), book({ id: 2, name: 'Second book', stockQuantity: 0 })])),
+    )
     await flushPromises()
     expect(app.findAll('article')).toHaveLength(2)
-    expect(app.get('main').text()).toContain('2 books available')
+    expect(app.get('main').text()).toContain('2 books found')
     expect(app.get('main').text()).toContain('$18.00')
     expect(app.get('main').text()).toContain('F. Scott Fitzgerald')
     expect(app.get('main').text()).toContain('Out of stock')
@@ -57,9 +69,9 @@ describe('product catalog pages', () => {
   })
 
   it('shows an empty catalog without rendering book cards', async () => {
-    getProducts.mockResolvedValueOnce(response([]))
+    getProducts.mockResolvedValueOnce(response(page()))
     const app = await renderAt('/products')
-    expect(app.get('[role="status"]').text()).toContain('No books available yet')
+    expect(app.get('[role="status"]').text()).toContain('No books match these filters')
     expect(app.findAll('article')).toHaveLength(0)
   })
 
@@ -68,7 +80,7 @@ describe('product catalog pages', () => {
     const app = await renderAt('/products')
     expect(app.get('[role="alert"]').text()).toContain("We couldn't load the books")
 
-    await app.get('main button').trigger('click')
+    await app.get('[role="alert"] button').trigger('click')
     await flushPromises()
     expect(app.find('[role="alert"]').exists()).toBe(false)
     expect(app.get('article h2').text()).toBe('The Great Gatsby')
@@ -185,9 +197,9 @@ describe('product catalog pages', () => {
   })
 
   it('cancels an unfinished catalog request when leaving the page', async () => {
-    getProducts.mockReturnValueOnce(deferred<AxiosResponse<Product[]>>().promise)
+    getProducts.mockReturnValueOnce(deferred<AxiosResponse<ProductPage>>().promise)
     await renderAt('/products')
-    const signal = getProducts.mock.calls[0]?.[0]
+    const signal = getProducts.mock.calls[0]?.[1]
     await router.push('/contact')
     await flushPromises()
     expect(signal?.aborted).toBe(true)

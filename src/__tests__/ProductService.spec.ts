@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { AxiosAdapter } from 'axios'
 import ProductService from '@/services/ProductService'
+import CategoryService from '@/services/CategoryService'
 import apiClient from '@/services/apiClient'
 import { formatLabels, formatPrice, resolveImageUrl } from '@/utils/catalog'
-import { book, response } from './fixtures/catalog'
+import { book, response, page } from './fixtures/catalog'
 
 const originalAdapter = apiClient.defaults.adapter
 
@@ -12,13 +13,39 @@ afterEach(() => {
 })
 
 describe('catalog HTTP service', () => {
-  it('requests the list as JSON and forwards cancellation', async () => {
-    const adapter = vi.fn<AxiosAdapter>().mockResolvedValue(response([book()]))
+  it('passes search, category, and page together to the paginated endpoint', async () => {
+    const adapter = vi
+      .fn<AxiosAdapter>()
+      .mockResolvedValue(response(page([book()], { page: 2, totalElements: 20, totalPages: 2 })))
+    apiClient.defaults.adapter = adapter
+    const result = await ProductService.getProducts({ q: 'space', categoryId: '2', page: 2 })
+    expect(adapter.mock.calls[0]?.[0].params).toEqual({ q: 'space', categoryId: '2', page: 2 })
+    expect(result.data.totalElements).toBe(20)
+  })
+
+  it('requests featured books and visible categories', async () => {
+    const adapter = vi
+      .fn<AxiosAdapter>()
+      .mockResolvedValueOnce(response([book()]))
+      .mockResolvedValueOnce(response([book().category]))
     apiClient.defaults.adapter = adapter
     const controller = new AbortController()
-    const result = await ProductService.getProducts(controller.signal)
+    expect((await ProductService.getFeaturedProducts(controller.signal)).data).toHaveLength(1)
+    expect((await CategoryService.getCategories(controller.signal)).data[0]?.name).toBe('Fiction')
+    expect(
+      adapter.mock.calls.map(([config]) => [config.method, config.url, config.signal]),
+    ).toEqual([
+      ['get', '/products/featured', controller.signal],
+      ['get', '/categories', controller.signal],
+    ])
+  })
+  it('requests the list as JSON and forwards cancellation', async () => {
+    const adapter = vi.fn<AxiosAdapter>().mockResolvedValue(response(page([book()])))
+    apiClient.defaults.adapter = adapter
+    const controller = new AbortController()
+    const result = await ProductService.getProducts({}, controller.signal)
 
-    expect(result.data[0]?.name).toBe('The Great Gatsby')
+    expect(result.data.content[0]?.name).toBe('The Great Gatsby')
     expect(adapter).toHaveBeenCalledWith(
       expect.objectContaining({
         method: 'get',

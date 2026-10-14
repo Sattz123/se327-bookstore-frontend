@@ -35,7 +35,7 @@ On first setup, copy `.env.example` to `.env` in this frontend folder (PowerShel
 
 `VITE_BACKEND_URL` sets the Axios base URL and defaults to `http://localhost:8080/api` when absent. This is the frontend's own setting; it does not read the backend's `.env`. Restart Vite after changing it. Vite includes `VITE_` settings in the browser bundle, so they must not contain secrets. Production builds use the value present when building.
 
-`ProductService` uses the shared Axios client to request `GET /products` and `GET /products/{id}`. With the example configuration these resolve to `http://localhost:8080/api/products` and its detail routes. Run the backend and its PostgreSQL database alongside Vite. The backend's local `dev` profile provides the five categories, 60 books, and covers.
+`ProductService` uses the shared Axios client to request `GET /products`, `/products/featured`, and `/products/{id}`. `CategoryService` requests `/categories`. With the example configuration these resolve under `http://localhost:8080/api`. Run the backend and its PostgreSQL database alongside Vite. The backend's local `dev` profile provides the five categories, 60 books, and covers.
 
 The client accepts JSON responses and uses a 10-second timeout. Feature services handle responses and errors as they are implemented.
 
@@ -49,20 +49,25 @@ Tailwind is installed through its Vite plugin. `src/assets/main.css` imports Tai
 
 `App.vue` contains the shared `AppHeader`, main `RouterView`, and `AppFooter`. Navigation wraps on narrow screens and highlights the current page. Keyboard users can skip directly to the main content.
 
-| Path              | Current page                    |
-| ----------------- | ------------------------------- |
-| `/`               | Basic welcome page              |
-| `/products`       | Live book catalog               |
-| `/products/:id`   | Book details                    |
-| `/categories`     | Categories placeholder          |
-| `/contact`        | Contact placeholder             |
-| Any unmatched URL | Not-found page with a link home |
+| Path              | Current page                         |
+| ----------------- | ------------------------------------ |
+| `/`               | Featured/newest books and categories |
+| `/products`       | Live book catalog                    |
+| `/products/:id`   | Book details                         |
+| `/categories`     | Visible category list                |
+| `/categories/:id` | Books within a category              |
+| `/contact`        | Contact placeholder                  |
+| Any unmatched URL | Not-found page with a link home      |
 
-Categories and contact still share `ComingSoonView.vue` and will be replaced in later stages. Pinia remains installed for future feature stores; the generated counter example has been removed.
+Contact still uses `ComingSoonView.vue` and will be replaced in a later stage. Pinia remains installed for future feature stores; the generated counter example has been removed.
 
 ### Book catalog
 
-`src/types/catalog.ts` matches the backend's product/category DTOs. `ProductListView` displays a responsive grid of `BookCard` components; selecting a card opens `ProductDetailView`. Detail pages show the author, category, description, price, stock, formats, and ordered covers. Prices use dollars to match the original bookstore. Category discovery, search, and pagination come in Stage 4; this version lists the full visible catalog.
+`src/types/catalog.ts` matches the backend's product/category DTOs. `ProductListView` displays a responsive grid of `BookCard` components; selecting a card opens `ProductDetailView`. Detail pages show the author, category, description, price, stock, formats, and ordered covers. Prices use dollars to match the original bookstore.
+
+The home page shows the newest eight visible books as featured books and links to visible categories. `/categories` lists categories, and `/categories/2` shows books in that category. Category cards use initials because the original category image files were unavailable.
+
+Search matches title or author. The URL stores `q`, `categoryId`, and the one-based `page`; category pages use the category ID in the path. For example, `/products?q=harry&categoryId=2&page=1` or `/categories/2?q=harry`. Search/filter submission resets to the first page. Previous/Next preserve the other filters, and refresh/Back restore the selected query. The server returns `{content, page, size, totalElements, totalPages}` with a fixed 15 books per page, newest first. Invalid URLs show a reset option; a valid page beyond the last provides a link to the first page. Missing or hidden categories display a category-not-found message.
 
 Both views display loading, failure/retry, and empty or missing-book states. Hidden books and books in hidden categories are omitted by the backend. Out-of-stock books remain viewable. Route changes cancel old requests so a delayed response cannot replace the next book. `BookCover` resolves image paths against the API's backend origin and shows a fallback when no cover is available or an image fails.
 
@@ -103,6 +108,8 @@ Run commands from this frontend folder. The component tests use Vitest, Vue Test
 The layout tests mount the real application with a fresh in-memory router for each test. They check header/footer navigation, active links, direct route entry, placeholder pages, page titles, unknown URLs, and returning home from the 404 page. The catalog service is mocked so these tests make no network requests; jsdom's unsupported scrolling API is stubbed. `createBookstoreRouter` supplies the same route configuration to the app and tests; the running app keeps browser history.
 
 `ProductCatalog.spec.ts` mounts the actual app/routes and covers list/detail success, loading, empty results, 404/invalid IDs, server/network failures and retries, optional fields, stock, cover selection/fallbacks, and cancellation of stale requests. `ProductService.spec.ts` uses a controlled Axios adapter to verify HTTP requests without a running server and checks display/image URL helpers. The existing `npm run check` CI job runs all tests and generates coverage.
+
+`CatalogDiscovery.spec.ts` covers featured home sections, category lists/pages, loading/retries, combined URL filters, page navigation, Back navigation, resetting pages after search, empty/out-of-range results, invalid URL values, missing/hidden categories, and delayed search responses. Service tests also check query parameters and the featured/category endpoints. Backend integration tests independently enforce category visibility and 15-item pagination with PostgreSQL.
 
 Coverage includes all TypeScript and Vue source files, including untested files. Test files and type declarations are excluded. Inspect statements, branches, functions, and lines in `coverage/index.html`; `coverage/lcov.info` is available for the later SonarQube setup, and `coverage/coverage-summary.json` contains totals. Reports and build output are ignored by Git. No coverage threshold is imposed at this step.
 
