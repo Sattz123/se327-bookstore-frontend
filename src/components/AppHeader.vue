@@ -120,12 +120,13 @@ async function handleLogout() {
             >
               Hi, {{ currentUser?.username }}
             </RouterLink>
-            <span
+            <RouterLink
               v-if="isAdmin"
+              :to="{ name: 'admin-home' }"
               class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800"
             >
-              Admin
-            </span>
+              Back office
+            </RouterLink>
             <button
               type="button"
               class="cursor-pointer rounded-lg px-3 py-1.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"

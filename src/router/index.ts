@@ -1,5 +1,9 @@
 import { createRouter, createWebHistory, type RouterHistory } from 'vue-router'
 import HomeView from '@/views/HomeView.vue'
+import { getActivePinia } from 'pinia'
+import { isAxiosError } from 'axios'
+import { AdminService } from '@/services/AdminService'
+import { useAuthStore } from '@/stores/auth'
 
 export function createBookstoreRouter(
   history: RouterHistory = createWebHistory(import.meta.env.BASE_URL),
@@ -7,6 +11,33 @@ export function createBookstoreRouter(
   const router = createRouter({
     history,
     routes: [
+      {
+        path: '/admin/login',
+        name: 'admin-login',
+        component: () => import('@/views/LoginView.vue'),
+        props: { administrator: true },
+        meta: { title: 'Administrator sign in', adminArea: true },
+      },
+      {
+        path: '/admin',
+        component: () => import('@/layouts/AdminLayout.vue'),
+        meta: { requiresAuth: true, requiresAdmin: true, adminArea: true },
+        children: [
+          {
+            path: '',
+            name: 'admin-home',
+            component: () => import('@/views/AdminOverviewView.vue'),
+            meta: { title: 'Administrator overview' },
+          },
+          { path: ':pathMatch(.*)*', redirect: { name: 'admin-home' } },
+        ],
+      },
+      {
+        path: '/forbidden',
+        name: 'forbidden',
+        component: () => import('@/views/ForbiddenView.vue'),
+        meta: { title: 'Access denied' },
+      },
       {
         path: '/',
         name: 'home',
@@ -134,7 +165,7 @@ export function createBookstoreRouter(
     },
   })
 
-  router.beforeEach((to) => {
+  router.beforeEach(async (to) => {
     const token = localStorage.getItem('auth_token')
     const userStr = localStorage.getItem('auth_user')
     const isAuthenticated = !!token && !!userStr
@@ -147,6 +178,38 @@ export function createBookstoreRouter(
       }
     }
 
+    if (
+      to.name === 'admin-login' &&
+      isAuthenticated &&
+      role === 'ADMIN' &&
+      to.query.reason !== 'unavailable'
+    )
+      return { name: 'admin-home' }
+
+    if (to.meta.requiresAdmin) {
+      if (!isAuthenticated || !token)
+        return { name: 'admin-login', query: { redirect: to.fullPath } }
+      try {
+        const user = await AdminService.getSession()
+        if (localStorage.getItem('auth_token') !== token) return false
+        if (user.role !== 'ADMIN') return { name: 'forbidden' }
+        if (getActivePinia()) useAuthStore().setAuth({ token, user })
+        else localStorage.setItem('auth_user', JSON.stringify(user))
+      } catch (cause) {
+        if (localStorage.getItem('auth_token') !== token) return false
+        if (isAxiosError(cause) && cause.response?.status === 403) return { name: 'forbidden' }
+        if (isAxiosError(cause) && cause.response?.status === 401) {
+          if (getActivePinia()) useAuthStore().clearAuth()
+          else {
+            localStorage.removeItem('auth_token')
+            localStorage.removeItem('auth_user')
+          }
+          return { name: 'admin-login', query: { redirect: to.fullPath } }
+        }
+        return { name: 'admin-login', query: { redirect: to.fullPath, reason: 'unavailable' } }
+      }
+    }
+
     if (to.meta.guestOnly && isAuthenticated) {
       return { name: 'home' }
     }
@@ -156,10 +219,6 @@ export function createBookstoreRouter(
         name: 'login',
         query: { redirect: to.fullPath },
       }
-    }
-
-    if (to.meta.requiresAdmin && (!isAuthenticated || role !== 'ADMIN')) {
-      return { name: 'home' }
     }
   })
 
