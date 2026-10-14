@@ -1,5 +1,13 @@
 # bookstore-frontend
 
+## Address book (Stage 9)
+
+Signed-in users can open **Addresses** in the header or visit `/addresses`. The page lists delivery addresses, marks the default, and offers add/edit forms, default selection, and delete confirmation. It uses `AddressService` and the existing authenticated Axios client; no address owner ID is sent by the browser.
+
+Label, recipient name, and address line are required. Phone, city, province/state, and postal code are optional, matching the original address book. Forms enforce the backend's length limits, preserve edits after a failed save, and show server validation errors. Pending actions disable duplicate submissions. Loading/error/retry states are included, and changing accounts or leaving the view discards stale responses and address drafts.
+
+The backend guarantees at most one default per customer. Deleting the default, or clearing its checkbox while editing, leaves no default until another is chosen. After successful changes the list is reloaded from the server. Route guards send guests to sign-in with a return URL. Start the backend with migration V7 available before using this page.
+
 Vue 3, TypeScript, and Tailwind frontend for the bookstore reimplementation.
 
 ## Recommended IDE Setup

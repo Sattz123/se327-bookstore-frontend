@@ -74,6 +74,12 @@ async function handleLogout() {
         >
           <template v-if="isAuthenticated">
             <RouterLink
+              :to="{ name: 'addresses' }"
+              class="rounded-lg px-2.5 py-1 text-sm font-medium text-slate-700 hover:bg-slate-100"
+              exact-active-class="bg-indigo-50 text-indigo-800"
+              >Addresses</RouterLink
+            >
+            <RouterLink
               :to="{ name: 'wishlist' }"
               class="flex items-center gap-1 rounded-lg px-2.5 py-1 text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900"
               exact-active-class="bg-indigo-50 text-indigo-800"
