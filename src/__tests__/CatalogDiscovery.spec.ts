@@ -165,7 +165,7 @@ describe('catalog discovery', () => {
     await vi.waitFor(() => expect(router.currentRoute.value.query.page).toBe('3'))
     await flushPromises()
     expect(router.currentRoute.value.query).toEqual({ q: 'space', categoryId: '2', page: '3' })
-    expect(app.get('nav[aria-label="Book pages"]').text()).not.toContain('Next')
+    expect(app.find('nav[aria-label="Book pages"] a[aria-label="Next page"]').exists()).toBe(false)
     await app.get('nav[aria-label="Book pages"] a').trigger('click')
     await vi.waitFor(() => expect(router.currentRoute.value.query.page).toBe('2'))
     await flushPromises()
@@ -173,6 +173,35 @@ describe('catalog discovery', () => {
       { q: 'space', categoryId: '2', page: 2 },
       expect.any(AbortSignal),
     )
+  })
+
+  it('centers numbered links, marks the current page and preserves filters when jumping', async () => {
+    products.mockImplementation(async (query) =>
+      response(page([book()], { page: query?.page ?? 1, totalElements: 320, totalPages: 20 })),
+    )
+    const app = await renderAt('/products?q=space&categoryId=2&page=10')
+    const pagination = app.get('nav[aria-label="Book pages"]')
+    expect(pagination.get('[aria-current="page"]').text()).toBe('10')
+    expect(pagination.findAll('[aria-current="page"]')).toHaveLength(1)
+    expect(pagination.get('ol').findAll('li').length).toBeLessThanOrEqual(7)
+    expect(pagination.get('ol').text()).toContain('…')
+    await pagination.get('a[aria-label="Page 11"]').trigger('click')
+    await vi.waitFor(() =>
+      expect(router.currentRoute.value.query).toEqual({ q: 'space', categoryId: '2', page: '11' }),
+    )
+  })
+
+  it('keeps Previous and Next in place but disables unavailable directions', async () => {
+    products.mockImplementation(async (query) =>
+      response(page([book()], { page: query?.page ?? 1, totalElements: 32, totalPages: 2 })),
+    )
+    const app = await renderAt('/products')
+    expect(app.get('.catalog-page-previous').attributes('aria-disabled')).toBe('true')
+    await app.get('a[aria-label="Next page"]').trigger('click')
+    await vi.waitFor(() => expect(router.currentRoute.value.query.page).toBe('2'))
+    await flushPromises()
+    expect(app.get('.catalog-page-next').attributes('aria-disabled')).toBe('true')
+    expect(app.find('a[aria-label="Previous page"]').exists()).toBe(true)
   })
 
   it('keeps category-page search in the URL and opens book details', async () => {

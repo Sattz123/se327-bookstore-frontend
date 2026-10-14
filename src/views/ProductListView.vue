@@ -3,6 +3,7 @@ import { isAxiosError } from 'axios'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import BookCard from '@/components/BookCard.vue'
+import AppIcon from '@/components/AppIcon.vue'
 import CategoryService from '@/services/CategoryService'
 import ProductService from '@/services/ProductService'
 import type { Category, ProductPage } from '@/types/catalog'
@@ -25,6 +26,18 @@ const heading = computed(() =>
   route.name === 'category-products' ? (category.value?.name ?? 'Category books') : 'Books',
 )
 const page = computed(() => Number(route.query.page ?? 1))
+const pageNumbers = computed(() => {
+  const total = results.value?.totalPages ?? 0
+  if (total <= 7) return Array.from({ length: total }, (_, index) => index + 1)
+  const start = Math.max(2, Math.min(page.value - 1, total - 3))
+  const numbers = [1, start, start + 1, start + 2, total]
+  const entries: (number | string)[] = []
+  numbers.forEach((number, index) => {
+    if (index && number - numbers[index - 1]! > 1) entries.push(`gap-${number}`)
+    entries.push(number)
+  })
+  return entries
+})
 
 async function loadProducts() {
   controller?.abort()
@@ -203,27 +216,138 @@ onBeforeUnmount(() => controller?.abort())
           <BookCard :product="product" />
         </li>
       </ul>
-      <nav
-        v-if="results.totalPages > 0"
-        aria-label="Book pages"
-        class="mt-8 flex flex-wrap items-center justify-center gap-5"
-      >
+      <nav v-if="results.totalPages > 0" aria-label="Book pages" class="catalog-pagination">
         <RouterLink
           v-if="page > 1"
           :to="pageLink(Math.min(page - 1, results.totalPages))"
-          class="rounded-lg border border-slate-300 px-4 py-2 font-semibold text-indigo-700"
-          >Previous</RouterLink
+          class="catalog-page-control catalog-page-previous"
+          aria-label="Previous page"
+          aria-current="false"
+          ><AppIcon name="arrow" :size="16" />Previous</RouterLink
         >
-        <span role="status" class="text-sm text-slate-600"
+        <span
+          v-else
+          class="catalog-page-control catalog-page-previous is-disabled"
+          aria-disabled="true"
+          ><AppIcon name="arrow" :size="16" />Previous</span
+        >
+        <span role="status" class="sr-only"
           >Page {{ results.page }} of {{ results.totalPages }}</span
         >
+        <ol class="catalog-page-numbers" aria-label="Page numbers">
+          <li v-for="number in pageNumbers" :key="number">
+            <RouterLink
+              v-if="typeof number === 'number'"
+              :to="pageLink(number)"
+              class="catalog-page-number"
+              :aria-label="`Page ${number}`"
+              :aria-current="page === number ? 'page' : 'false'"
+              >{{ number }}</RouterLink
+            >
+            <span v-else class="catalog-page-gap" aria-hidden="true">…</span>
+          </li>
+        </ol>
         <RouterLink
           v-if="page < results.totalPages"
           :to="pageLink(page + 1)"
-          class="rounded-lg border border-slate-300 px-4 py-2 font-semibold text-indigo-700"
-          >Next</RouterLink
-        >
+          class="catalog-page-control catalog-page-next"
+          aria-label="Next page"
+          aria-current="false"
+          >Next<AppIcon name="arrow" :size="16"
+        /></RouterLink>
+        <span v-else class="catalog-page-control catalog-page-next is-disabled" aria-disabled="true"
+          >Next<AppIcon name="arrow" :size="16"
+        /></span>
       </nav>
     </template>
   </section>
 </template>
+
+<style scoped>
+.catalog-pagination {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 16px;
+  margin-top: 42px;
+  padding-top: 24px;
+  border-top: 1px solid #edf0f4;
+  font-size: 13px;
+}
+.catalog-page-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 40px;
+  padding: 8px 13px;
+  border: 1px solid #dfe4eb;
+  border-radius: 7px;
+  color: #344154;
+  width: fit-content;
+}
+.catalog-page-previous {
+  justify-self: start;
+}
+.catalog-page-previous svg {
+  transform: rotate(180deg);
+}
+.catalog-page-next {
+  justify-self: end;
+}
+.catalog-page-control.is-disabled {
+  color: #b1b8c2;
+  border-color: #edf0f4;
+}
+.catalog-page-numbers {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.catalog-page-number,
+.catalog-page-gap {
+  display: grid;
+  place-items: center;
+  min-width: 38px;
+  height: 40px;
+  border-radius: 7px;
+  font-variant-numeric: tabular-nums;
+}
+.catalog-page-number:hover,
+a.catalog-page-control:hover {
+  background: #f3f5fa;
+}
+.catalog-page-number[aria-current='page'] {
+  background: #3d53df;
+  color: #fff;
+  font-weight: 600;
+}
+.catalog-page-gap {
+  color: #8b95a3;
+  min-width: 20px;
+}
+@media (max-width: 540px) {
+  .catalog-pagination {
+    gap: 6px;
+    font-size: 11px;
+  }
+  .catalog-page-control {
+    padding: 7px 8px;
+    gap: 4px;
+  }
+  .catalog-page-control svg {
+    display: none;
+  }
+  .catalog-page-numbers {
+    gap: 2px;
+  }
+  .catalog-page-number {
+    min-width: 26px;
+    height: 36px;
+  }
+  .catalog-page-gap {
+    min-width: 12px;
+    height: 36px;
+  }
+}
+</style>
