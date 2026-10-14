@@ -1,5 +1,9 @@
 # bookstore-frontend
 
+## Customer order history (Stage 13)
+
+Use **Orders** in the signed-in header to open `/orders`. Purchases appear newest first with their date, payment display, saved total and Pending/Completed status. Open an order to view `/orders/:id`, including the original titles, formats, quantities, prices and delivery details. Checkout confirmation links to that order and the full history. Both routes require login; empty history, loading, unavailable orders and retry states are handled. Order data is cleared on account changes.
+
 ## Checkout (Stage 12)
 
 Proceed from the cart to `/checkout`, select a saved delivery address and either cash on delivery or a saved simulated card, then review the server-priced items and total. Cash creates a pending order; simulated card payment creates a completed order without a real charge. Confirmation at `/checkout/confirmation/:id` reloads saved order snapshots and is owner-only.

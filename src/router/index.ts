@@ -87,6 +87,18 @@ export function createBookstoreRouter(
         meta: { title: 'Address book', requiresAuth: true },
       },
       {
+        path: '/orders',
+        name: 'orders',
+        component: () => import('@/views/OrderHistoryView.vue'),
+        meta: { title: 'Order history', requiresAuth: true },
+      },
+      {
+        path: '/orders/:id',
+        name: 'order-detail',
+        component: () => import('@/views/OrderConfirmationView.vue'),
+        meta: { title: 'Order details', requiresAuth: true },
+      },
+      {
         path: '/checkout',
         name: 'checkout',
         component: () => import('@/views/CheckoutView.vue'),
