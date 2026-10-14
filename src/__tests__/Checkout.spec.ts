@@ -32,7 +32,10 @@ vi.mock('@/services/AuthService', () => ({
   AuthService: { logout: vi.fn(), getCurrentUser: vi.fn() },
 }))
 vi.mock('@/services/ProductService', () => ({
-  default: { getFeaturedProducts: vi.fn().mockResolvedValue([]) },
+  default: {
+    getFeaturedProducts: vi.fn().mockResolvedValue([]),
+    getProduct: vi.fn().mockResolvedValue({ data: { images: [] } }),
+  },
 }))
 vi.mock('@/services/CategoryService', () => ({
   default: { getCategories: vi.fn().mockResolvedValue([]) },
