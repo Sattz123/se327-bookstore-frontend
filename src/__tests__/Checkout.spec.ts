@@ -282,4 +282,47 @@ describe('checkout and confirmation', () => {
     expect(service.confirmation).not.toHaveBeenCalled()
     expect(app.get('main').text()).not.toContain('Demo Reader')
   })
+  it('clears authentication and redirects to login when checkout returns 401 unauthorized', async () => {
+    service.placeOrder.mockRejectedValueOnce({
+      isAxiosError: true,
+      response: { status: 401, data: { detail: 'Session expired.' } },
+    })
+    await render()
+    await submit()
+    expect(useAuthStore().isAuthenticated).toBe(false)
+    expect(router.currentRoute.value.path).toBe('/login')
+    expect(router.currentRoute.value.query.redirect).toBe('/checkout')
+  })
+  it('preserves pending payload across 500 server error and allows retry order', async () => {
+    service.placeOrder.mockRejectedValueOnce({
+      isAxiosError: true,
+      response: { status: 500, data: { detail: 'Internal database error.' } },
+    })
+    const app = await render()
+    await submit()
+    expect(app.get('main').text()).toContain('awaiting confirmation')
+    expect(window.sessionStorage.getItem('bookstore_checkout_pending_1')).not.toBeNull()
+    service.placeOrder.mockResolvedValueOnce(placedOrder)
+    await click('Retry order')
+    expect(router.currentRoute.value.path).toBe('/checkout/confirmation/41')
+  })
+  it('displays multiple validation error messages from backend payload', async () => {
+    service.placeOrder.mockRejectedValueOnce({
+      isAxiosError: true,
+      response: {
+        status: 400,
+        data: {
+          errors: [
+            { message: 'Shipping address is unavailable.' },
+            { message: 'Payment method is expired.' },
+          ],
+        },
+      },
+    })
+    const app = await render()
+    await submit()
+    expect(app.get('[role="alert"]').text()).toContain(
+      'Shipping address is unavailable. Payment method is expired.',
+    )
+  })
 })
