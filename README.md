@@ -229,3 +229,11 @@ GitHub-hosted CI cannot reach your laptop's local server. Build/test CI continue
 After scanning, save the frontend dashboard's quality-gate result, coverage, findings, new-code definition, and actual gate conditions for the report. Coverage includes implementation source; test files and declarations are classified separately. Until a real scan completes, this is configuration rather than a successful analysis result.
 
 References: [SonarScanner Docker usage](https://docs.sonarsource.com/sonarqube-community-build/analyzing-source-code/scanners/sonarscanner#sonarscanner-from-docker-image), [LCOV coverage import](https://docs.sonarsource.com/sonarqube-community-build/analyzing-source-code/test-coverage/javascript-typescript-test-coverage), and [SonarQube tokens](https://docs.sonarsource.com/sonarqube-community-build/user-guide/managing-tokens).
+
+## Administrator dashboard (Stage 19)
+
+The back-office home `/admin` now loads live totals and recent orders from
+`/api/admin/dashboard`. Cards link to products, orders and customers; order IDs link
+to management details. Recent orders have ten rows per page, status labels, refresh,
+loading, retry and empty states. Book counts include hidden/archived records, all
+order statuses count, and administrators are excluded from customer counts.
