@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { computed, inject } from 'vue'
+import { computed, inject, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { piniaSymbol } from 'pinia'
 import { useAuthStore } from '@/stores/auth'
+import { useWishlistStore } from '@/stores/wishlist'
 
 const router = useRouter()
 const hasPinia = inject(piniaSymbol, null) !== null
 const authStore = hasPinia ? useAuthStore() : null
+const wishlistStore = hasPinia ? useWishlistStore() : null
 
 const links = [
   { name: 'home', label: 'Home' },
@@ -18,10 +20,26 @@ const links = [
 const isAuthenticated = computed(() => authStore?.isAuthenticated ?? false)
 const isAdmin = computed(() => authStore?.isAdmin ?? false)
 const currentUser = computed(() => authStore?.currentUser ?? null)
+const wishlistCount = computed(() => wishlistStore?.count ?? 0)
+
+watch(
+  () => authStore?.isAuthenticated,
+  (authed) => {
+    if (authed && wishlistStore) {
+      wishlistStore.fetchWishlist()
+    } else if (!authed && wishlistStore) {
+      wishlistStore.clear()
+    }
+  },
+  { immediate: true },
+)
 
 async function handleLogout() {
   if (authStore) {
     await authStore.logout()
+  }
+  if (wishlistStore) {
+    wishlistStore.clear()
   }
   await router.push({ name: 'home' })
 }
@@ -55,6 +73,19 @@ async function handleLogout() {
           class="flex items-center gap-2 border-t border-slate-200 pt-3 sm:border-t-0 sm:border-l sm:pl-4 sm:pt-0"
         >
           <template v-if="isAuthenticated">
+            <RouterLink
+              :to="{ name: 'wishlist' }"
+              class="flex items-center gap-1 rounded-lg px-2.5 py-1 text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+              exact-active-class="bg-indigo-50 text-indigo-800"
+            >
+              Wishlist
+              <span
+                v-if="wishlistCount > 0"
+                class="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-indigo-100 px-1 text-xs font-semibold text-indigo-800"
+              >
+                {{ wishlistCount }}
+              </span>
+            </RouterLink>
             <RouterLink
               :to="{ name: 'profile' }"
               class="rounded-lg px-2.5 py-1 text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900"

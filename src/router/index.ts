@@ -75,6 +75,12 @@ export function createBookstoreRouter(
         meta: { title: 'My Profile', requiresAuth: true },
       },
       {
+        path: '/wishlist',
+        name: 'wishlist',
+        component: () => import('@/views/WishlistView.vue'),
+        meta: { title: 'My Wishlist', requiresAuth: true },
+      },
+      {
         path: '/:pathMatch(.*)*',
         name: 'not-found',
         component: () => import('@/views/NotFoundView.vue'),
