@@ -13,7 +13,11 @@ import AppFooter from './components/AppFooter.vue'
       Skip to content
     </a>
     <AppHeader />
-    <main id="main-content" tabindex="-1" class="mx-auto w-full max-w-6xl flex-1 px-5 py-12 sm:px-8 sm:py-16">
+    <main
+      id="main-content"
+      tabindex="-1"
+      class="mx-auto w-full max-w-6xl flex-1 px-5 py-12 sm:px-8 sm:py-16"
+    >
       <RouterView />
     </main>
     <AppFooter />

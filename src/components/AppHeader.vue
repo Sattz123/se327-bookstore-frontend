@@ -11,8 +11,13 @@ const links = [
 
 <template>
   <header class="border-b border-slate-200 bg-white">
-    <div class="mx-auto flex max-w-6xl flex-col gap-5 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-8">
-      <RouterLink :to="{ name: 'home' }" class="w-fit text-xl font-bold tracking-tight text-slate-900">
+    <div
+      class="mx-auto flex max-w-6xl flex-col gap-5 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-8"
+    >
+      <RouterLink
+        :to="{ name: 'home' }"
+        class="w-fit text-xl font-bold tracking-tight text-slate-900"
+      >
         InwZa <span class="text-indigo-700">Bookstore</span>
       </RouterLink>
       <nav aria-label="Main navigation" class="flex flex-wrap gap-1">
