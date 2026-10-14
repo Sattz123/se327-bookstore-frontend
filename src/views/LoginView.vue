@@ -67,8 +67,14 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <main :id="administrator ? 'main-content' : undefined" class="mx-auto max-w-md px-5 py-12">
-    <div class="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+  <component
+    :is="administrator ? 'main' : 'section'"
+    :id="administrator ? 'main-content' : undefined"
+    tabindex="-1"
+    class="mx-auto w-full max-w-md"
+    :class="{ 'px-5 py-12': administrator }"
+  >
+    <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
       <div class="mb-8 text-center">
         <h1 class="text-2xl font-bold tracking-tight text-slate-900">
           {{ administrator ? 'Administrator sign in' : 'Sign in to your account' }}
@@ -159,5 +165,5 @@ async function handleSubmit() {
         >
       </div>
     </div>
-  </main>
+  </component>
 </template>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, inject, watch } from 'vue'
+import { computed, inject, ref, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { piniaSymbol } from 'pinia'
 import { useAuthStore } from '@/stores/auth'
@@ -23,25 +23,29 @@ const isAuthenticated = computed(() => authStore?.isAuthenticated ?? false)
 const isAdmin = computed(() => authStore?.isAdmin ?? false)
 const currentUser = computed(() => authStore?.currentUser ?? null)
 const wishlistCount = computed(() => wishlistStore?.count ?? 0)
+const signingOut = ref(false)
 
 watch(
-  () => authStore?.isAuthenticated,
-  (authed) => {
-    if (authed && wishlistStore) {
+  () => authStore?.currentUser?.id,
+  (userId) => {
+    wishlistStore?.clear()
+    if (userId && wishlistStore) {
       wishlistStore.fetchWishlist()
-    } else if (!authed && wishlistStore) {
-      wishlistStore.clear()
     }
   },
   { immediate: true },
 )
 
 async function handleLogout() {
-  if (authStore) {
-    await authStore.logout()
-  }
-  if (wishlistStore) {
-    wishlistStore.clear()
+  if (signingOut.value) return
+  signingOut.value = true
+  try {
+    await authStore?.logout()
+  } catch {
+    authStore?.clearAuth()
+  } finally {
+    wishlistStore?.clear()
+    signingOut.value = false
   }
   await router.push({ name: 'home' })
 }
@@ -50,7 +54,7 @@ async function handleLogout() {
 <template>
   <header class="border-b border-slate-200 bg-white">
     <div
-      class="mx-auto flex max-w-6xl flex-col gap-5 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-8"
+      class="mx-auto flex max-w-6xl flex-col gap-5 px-5 py-5 sm:px-8 lg:flex-row lg:items-start lg:justify-between"
     >
       <RouterLink
         :to="{ name: 'home' }"
@@ -58,7 +62,7 @@ async function handleLogout() {
       >
         InwZa <span class="text-indigo-700">Bookstore</span>
       </RouterLink>
-      <div class="flex flex-wrap items-center gap-4">
+      <div class="flex min-w-0 flex-wrap items-center gap-4">
         <nav aria-label="Main navigation" class="flex flex-wrap gap-1">
           <RouterLink
             v-for="link in links"
@@ -72,7 +76,7 @@ async function handleLogout() {
         </nav>
 
         <div
-          class="flex items-center gap-2 border-t border-slate-200 pt-3 sm:border-t-0 sm:border-l sm:pl-4 sm:pt-0"
+          class="flex w-full min-w-0 flex-wrap items-center gap-2 border-t border-slate-200 pt-3"
         >
           <template v-if="isAuthenticated">
             <RouterLink
@@ -115,7 +119,7 @@ async function handleLogout() {
             </RouterLink>
             <RouterLink
               :to="{ name: 'profile' }"
-              class="rounded-lg px-2.5 py-1 text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+              class="max-w-full break-words rounded-lg px-2.5 py-1 text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900"
               exact-active-class="bg-indigo-50 text-indigo-800"
             >
               Hi, {{ currentUser?.username }}
@@ -129,6 +133,7 @@ async function handleLogout() {
             </RouterLink>
             <button
               type="button"
+              :disabled="signingOut"
               class="cursor-pointer rounded-lg px-3 py-1.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
               @click="handleLogout"
             >

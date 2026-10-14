@@ -2,8 +2,8 @@ import apiClient from './apiClient'
 import type { AuthResponse, ChangePasswordPayload, UpdateProfilePayload, User } from '@/types/auth'
 
 export const ProfileService = {
-  async getProfile(): Promise<User> {
-    const response = await apiClient.get<User>('/profile')
+  async getProfile(signal?: AbortSignal): Promise<User> {
+    const response = await apiClient.get<User>('/profile', { signal })
     return response.data
   },
 

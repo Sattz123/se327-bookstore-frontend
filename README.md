@@ -267,3 +267,27 @@ simulated cards, account order status and administrator cancellation) rather tha
 promising services that do not exist. The original condition.ejs is an account landing
 page rather than actual terms; the new page explains the demo's account/order rules.
 No editable help data, contact-message endpoint or database migration is needed.
+
+## Interface completion (Stage 20)
+
+The storefront account navigation now wraps on phones and long text can break without
+pushing the whole page sideways. Login, registration, recovery and profile pages use
+one main landmark and avoid repeated narrow-screen padding. Route changes focus the
+main content without moving focus when only filters change. FAQ disclosures work with
+Enter/Space and the existing skip link remains available.
+
+Customer profile reads show loading/retry rather than silently using cached details.
+Both profile forms block overlapping writes and stale responses cannot replace a new
+session. Wishlist load errors are distinct from an empty list; failed save/remove
+requests have visible feedback and action buttons block duplicate clicks. Clearing an
+account invalidates pending wishlist reads so an old response cannot repopulate it.
+Sign-out still clears the local session if its server request fails. Registration and
+password-recovery submission handlers also guard against duplicate requests.
+
+Validation: lint, TypeScript and production build; temporary local dev startup and
+browser checks of public page links, FAQ keyboard expansion, content focus and 360px
+contact/registration layouts. The separate automated regression stage was not run.
+No backend integration change was needed for Stage 20.
+
+Merge `feature/store-information` into develop first, then
+`fix/storefront-account-feedback` (frontend repository only).

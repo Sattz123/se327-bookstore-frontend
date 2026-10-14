@@ -4,6 +4,7 @@ import { getActivePinia } from 'pinia'
 import { isAxiosError } from 'axios'
 import { AdminService } from '@/services/AdminService'
 import { useAuthStore } from '@/stores/auth'
+import { nextTick } from 'vue'
 
 export function createBookstoreRouter(
   history: RouterHistory = createWebHistory(import.meta.env.BASE_URL),
@@ -270,8 +271,13 @@ export function createBookstoreRouter(
     }
   })
 
-  router.afterEach((to) => {
+  router.afterEach(async (to, from, failure) => {
+    if (failure) return
     document.title = `${to.meta.title ?? 'Home'} | InwZa Bookstore`
+    if (to.path !== from.path) {
+      await nextTick()
+      document.getElementById('main-content')?.focus({ preventScroll: true })
+    }
   })
 
   return router

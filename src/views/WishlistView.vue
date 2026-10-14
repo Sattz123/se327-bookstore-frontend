@@ -10,6 +10,7 @@ const hasPinia = inject(piniaSymbol, null) !== null
 const wishlistStore = hasPinia ? useWishlistStore() : null
 
 const removingId = ref<number | null>(null)
+const actionError = ref('')
 const items = computed(() => wishlistStore?.items ?? [])
 const isLoading = computed(() => wishlistStore?.isLoading ?? false)
 const count = computed(() => wishlistStore?.count ?? 0)
@@ -21,10 +22,13 @@ onMounted(async () => {
 })
 
 async function handleRemove(productId: number) {
-  if (!wishlistStore) return
+  if (!wishlistStore || removingId.value !== null) return
+  actionError.value = ''
   removingId.value = productId
   try {
     await wishlistStore.removeFromWishlist(productId)
+  } catch {
+    actionError.value = 'Unable to remove this book. Please try again.'
   } finally {
     removingId.value = null
   }
@@ -45,6 +49,7 @@ async function handleRemove(productId: number) {
       </span>
     </div>
 
+    <p v-if="actionError" role="alert" class="mb-4 text-rose-700">{{ actionError }}</p>
     <!-- Loading State -->
     <div
       v-if="isLoading && items.length === 0"
@@ -54,6 +59,16 @@ async function handleRemove(productId: number) {
       Loading your wishlist…
     </div>
 
+    <div v-else-if="wishlistStore?.error" class="rounded-xl border border-rose-200 bg-rose-50 p-6">
+      <p role="alert">{{ wishlistStore.error }}</p>
+      <button
+        type="button"
+        class="mt-3 text-indigo-700 underline"
+        @click="wishlistStore.fetchWishlist"
+      >
+        Try again
+      </button>
+    </div>
     <!-- Empty State -->
     <div
       v-else-if="items.length === 0"
@@ -94,14 +109,14 @@ async function handleRemove(productId: number) {
         class="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6"
         data-testid="wishlist-item"
       >
-        <div class="flex items-center gap-4">
+        <div class="flex min-w-0 items-center gap-4">
           <RouterLink
             :to="{ name: 'product-detail', params: { id: item.product.id } }"
             class="h-24 w-18 shrink-0 overflow-hidden rounded-md border border-slate-200"
           >
             <BookCover :image="item.product.images[0]" :name="item.product.name" />
           </RouterLink>
-          <div>
+          <div class="min-w-0">
             <span class="text-xs font-semibold text-indigo-700">
               {{ item.product.category?.name }}
             </span>
@@ -129,7 +144,7 @@ async function handleRemove(productId: number) {
           </RouterLink>
           <button
             type="button"
-            :disabled="removingId === item.product.id"
+            :disabled="removingId !== null"
             class="cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
             :aria-label="`Remove ${item.product.name} from wishlist`"
             @click="handleRemove(item.product.id)"

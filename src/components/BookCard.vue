@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, inject } from 'vue'
+import { computed, inject, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { piniaSymbol } from 'pinia'
 import BookCover from '@/components/BookCover.vue'
@@ -9,6 +9,8 @@ import { useAuthStore } from '@/stores/auth'
 import { useWishlistStore } from '@/stores/wishlist'
 
 const props = defineProps<{ product: Product }>()
+const wishlistBusy = ref(false)
+const wishlistError = ref('')
 
 const hasPinia = inject(piniaSymbol, null) !== null
 const authStore = hasPinia ? useAuthStore() : null
@@ -26,6 +28,8 @@ const isSaved = computed(() => {
 })
 
 async function handleToggleWishlist() {
+  if (wishlistBusy.value) return
+  wishlistError.value = ''
   if (!authStore?.isAuthenticated) {
     if (router) {
       await router.push({ name: 'login' })
@@ -33,20 +37,29 @@ async function handleToggleWishlist() {
     return
   }
   if (wishlistStore) {
-    await wishlistStore.toggleWishlist(props.product)
+    wishlistBusy.value = true
+    try {
+      await wishlistStore.toggleWishlist(props.product)
+    } catch {
+      wishlistError.value = 'Unable to update your wishlist. Please try again.'
+    } finally {
+      wishlistBusy.value = false
+    }
   }
 }
 </script>
 
 <template>
   <article
-    class="relative h-full rounded-xl border border-slate-200 bg-white transition-shadow hover:shadow-md"
+    class="relative flex h-full min-w-0 flex-col rounded-xl border border-slate-200 bg-white transition-shadow hover:shadow-md"
   >
     <button
       type="button"
+      :disabled="wishlistBusy"
+      :aria-pressed="isSaved"
       :aria-label="isSaved ? 'Remove from wishlist' : 'Save to wishlist'"
       :title="isSaved ? 'Remove from wishlist' : 'Save to wishlist'"
-      class="absolute top-3 right-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow-xs backdrop-blur-xs transition hover:scale-110 focus:outline-hidden"
+      class="absolute top-3 right-3 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 shadow-xs backdrop-blur-xs transition hover:scale-110 disabled:opacity-50"
       @click.stop.prevent="handleToggleWishlist"
     >
       <svg
@@ -81,7 +94,7 @@ async function handleToggleWishlist() {
     </button>
     <RouterLink
       :to="{ name: 'product-detail', params: { id: product.id } }"
-      class="flex h-full flex-col rounded-xl p-4"
+      class="flex flex-1 flex-col rounded-xl p-4"
     >
       <BookCover :image="product.images[0]" :name="product.name" />
       <p class="mt-4 text-xs font-semibold tracking-wide text-indigo-700">
@@ -96,5 +109,8 @@ async function handleToggleWishlist() {
         </p>
       </div>
     </RouterLink>
+    <p v-if="wishlistError" role="alert" class="px-4 pb-4 text-sm text-rose-700">
+      {{ wishlistError }}
+    </p>
   </article>
 </template>
