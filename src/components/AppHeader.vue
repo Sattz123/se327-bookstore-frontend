@@ -21,6 +21,7 @@ const search = ref('')
 const header = ref<HTMLElement | null>(null)
 const signingOut = ref(false)
 const isAuthenticated = computed(() => auth?.isAuthenticated ?? false)
+const firstName = computed(() => auth?.currentUser?.username.trim().split(/\s+/)[0] || 'Account')
 const accountLinks = [
   { name: 'profile', label: 'My account' },
   { name: 'orders', label: 'My orders' },
@@ -178,7 +179,9 @@ async function logout() {
           @toggle="toggleMenu"
         >
           <summary class="account-trigger" aria-label="Your account">
-            <AppIcon name="user" :size="18" /><span>Account</span
+            <AppIcon name="user" :size="18" /><span class="account-first-name" :title="firstName">{{
+              firstName
+            }}</span
             ><AppIcon name="chevron" :size="13" />
           </summary>
           <div class="header-menu account-menu">
@@ -203,3 +206,21 @@ async function logout() {
     </div>
   </header>
 </template>
+
+<style scoped>
+.account-first-name {
+  display: inline-block;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 620px) {
+  .account-first-name {
+    max-width: 76px;
+  }
+  .store-header-inner:has(.account-dropdown) .header-cart {
+    margin-right: 158px;
+  }
+}
+</style>

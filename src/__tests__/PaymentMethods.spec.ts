@@ -99,7 +99,7 @@ describe('saved payment methods', () => {
   }
   async function fillForm() {
     await click('Add payment method')
-    await wrapper!.get('#payment-provider').setValue('  Visa  ')
+    await wrapper!.get('#payment-provider').setValue('Visa')
     await wrapper!.get('#payment-name').setValue('  Demo Reader  ')
     await wrapper!.get('#payment-last-four').setValue('1234')
     await wrapper!.get('#payment-month').setValue(12)
@@ -138,6 +138,27 @@ describe('saved payment methods', () => {
     pending.resolve([])
     await flushPromises()
     expect(app.get('main').text()).toContain('No saved payment methods')
+  })
+  it('shows the first name in the account button and updates after a profile change', async () => {
+    useAuthStore().setAuth({
+      token: 'test-token',
+      user: { ...reader, username: '  Alex Morgan  ' },
+    })
+    const app = await render()
+    expect(app.get('summary.account-trigger span').text()).toBe('Alex')
+    useAuthStore().setAuth({ token: 'test-token', user: { ...reader, username: 'Sam Jones' } })
+    await flushPromises()
+    expect(app.get('summary.account-trigger span').text()).toBe('Sam')
+  })
+  it('uses card and expiry selectors with no invented expiry date', async () => {
+    const app = await render()
+    await click('Add payment method')
+    expect(app.get('#payment-provider').element.tagName).toBe('SELECT')
+    expect(app.get<HTMLSelectElement>('#payment-month').element.value).toBe('')
+    expect(app.get<HTMLSelectElement>('#payment-year').element.value).toBe('')
+    expect(app.get<HTMLInputElement>('#payment-name').element.value).toBe('Reader')
+    await submit()
+    expect(service.addPaymentMethod).not.toHaveBeenCalled()
   })
   it('retries loading after a network failure', async () => {
     service.getPaymentMethods.mockRejectedValueOnce(new Error('Offline'))

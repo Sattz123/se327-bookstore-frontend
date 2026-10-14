@@ -2,6 +2,7 @@
 import { isAxiosError } from 'axios'
 import { onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import AppIcon from '@/components/AppIcon.vue'
 import { PaymentMethodService as service } from '@/services/PaymentMethodService'
 import { useAuthStore } from '@/stores/auth'
 import type { PaymentMethod } from '@/types/paymentMethod'
@@ -17,12 +18,15 @@ const deletingId = ref<number | null>(null)
 const loadError = ref('')
 const error = ref('')
 const message = ref('')
+const currentYear = new Date().getUTCFullYear()
+const expiryYears = Array.from({ length: 21 }, (_, index) => currentYear + index)
+const cardTypes = ['Visa', 'Mastercard', 'American Express', 'Other']
 const emptyForm = () => ({
-  provider: 'Credit Card',
-  cardholderName: '',
+  provider: '',
+  cardholderName: auth.currentUser?.username ?? '',
   lastFour: '',
-  expiryMonth: 1,
-  expiryYear: new Date().getUTCFullYear() + 1,
+  expiryMonth: '' as number | '',
+  expiryYear: '' as number | '',
   isDefault: false,
 })
 const form = reactive(emptyForm())
@@ -93,21 +97,23 @@ async function mutate(operation: () => Promise<unknown>, success: string) {
 
 async function saveMethod() {
   if (busy.value) return
+  const expiryMonth = Number(form.expiryMonth)
+  const expiryYear = Number(form.expiryYear)
   if (
     !form.provider.trim() ||
     form.provider.length > 50 ||
     !form.cardholderName.trim() ||
     form.cardholderName.length > 100 ||
     !/^[0-9]{4}$/.test(form.lastFour) ||
-    !Number.isInteger(form.expiryMonth) ||
-    form.expiryMonth < 1 ||
-    form.expiryMonth > 12 ||
-    !Number.isInteger(form.expiryYear) ||
-    form.expiryYear < 2000 ||
-    form.expiryYear > 9999
+    !Number.isInteger(expiryMonth) ||
+    expiryMonth < 1 ||
+    expiryMonth > 12 ||
+    !Number.isInteger(expiryYear) ||
+    expiryYear < currentYear ||
+    expiryYear > currentYear + 20
   ) {
     error.value =
-      'Enter a provider, cardholder name, exactly four digits, and a valid expiry month/year.'
+      'Choose a card type, enter the name on the card, exactly four digits, and a valid expiry date.'
     return
   }
   await mutate(
@@ -116,6 +122,8 @@ async function saveMethod() {
         ...form,
         provider: form.provider.trim(),
         cardholderName: form.cardholderName.trim(),
+        expiryMonth,
+        expiryYear,
       }),
     'Payment method saved.',
   )
@@ -161,6 +169,7 @@ onBeforeUnmount(() => {
         </p>
       </div>
       <button
+        v-if="!showForm"
         type="button"
         :disabled="loading || busy || !!loadError"
         class="rounded-lg bg-indigo-700 px-4 py-2 font-semibold text-white disabled:opacity-50"
@@ -186,67 +195,73 @@ onBeforeUnmount(() => {
       <form
         v-if="showForm"
         aria-label="Payment method form"
-        class="mt-6 rounded-xl border border-slate-200 bg-white p-6"
+        class="payment-editor mt-6"
         @submit.prevent="saveMethod"
       >
-        <h2 class="text-xl font-semibold">New payment method</h2>
-        <fieldset :disabled="busy" class="mt-5 grid gap-4 sm:grid-cols-2">
-          <label class="text-sm font-medium"
-            >Provider<input
-              id="payment-provider"
-              v-model="form.provider"
-              required
-              maxlength="50"
-              class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
-          /></label>
-          <label class="text-sm font-medium"
-            >Cardholder name<input
+        <div class="payment-editor-heading">
+          <span class="payment-card-icon"><AppIcon name="card" :size="23" /></span>
+          <div>
+            <h2>Add a card</h2>
+            <p>Save sample card details for simulated checkout.</p>
+          </div>
+        </div>
+        <fieldset :disabled="busy" class="payment-fields">
+          <label class="payment-field"
+            >Card type<select id="payment-provider" v-model="form.provider" required>
+              <option disabled value="">Choose a card type</option>
+              <option v-for="type in cardTypes" :key="type" :value="type">{{ type }}</option>
+            </select></label
+          >
+          <label class="payment-field"
+            >Name on card<input
               id="payment-name"
               v-model="form.cardholderName"
               required
               maxlength="100"
-              class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+              placeholder="e.g. Alex Morgan"
           /></label>
-          <label class="text-sm font-medium"
-            >Last four digits only<input
-              id="payment-last-four"
-              v-model="form.lastFour"
-              required
-              inputmode="numeric"
-              pattern="[0-9]{4}"
-              minlength="4"
-              maxlength="4"
-              placeholder="1234"
-              class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
-          /></label>
-          <div class="flex gap-3">
-            <label class="text-sm font-medium"
-              >Expiry month<input
-                id="payment-month"
-                v-model.number="form.expiryMonth"
-                type="number"
+          <div class="payment-field">
+            <label for="payment-last-four">Last 4 digits</label>
+            <div class="payment-card-ending">
+              <span aria-hidden="true">•••• •••• ••••</span
+              ><input
+                id="payment-last-four"
+                v-model="form.lastFour"
                 required
-                min="1"
-                max="12"
-                step="1"
-                class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
-            /></label>
-            <label class="text-sm font-medium"
-              >Expiry year<input
-                id="payment-year"
-                v-model.number="form.expiryYear"
-                type="number"
-                required
-                min="2000"
-                max="9999"
-                step="1"
-                class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
-            /></label>
+                inputmode="numeric"
+                pattern="[0-9]{4}"
+                minlength="4"
+                maxlength="4"
+                placeholder="1234"
+                aria-describedby="payment-digits-help"
+              />
+            </div>
+            <small id="payment-digits-help"
+              >Use four sample digits. No full card number or security code is needed.</small
+            >
           </div>
-          <label class="flex items-center gap-2 sm:col-span-2"
+          <div class="payment-field">
+            <span id="payment-expiry-label">Expiry date</span>
+            <div class="payment-expiry" role="group" aria-labelledby="payment-expiry-label">
+              <label class="sr-only" for="payment-month">Expiry month</label>
+              <select id="payment-month" v-model.number="form.expiryMonth" required>
+                <option disabled value="">MM</option>
+                <option v-for="month in 12" :key="month" :value="month">
+                  {{ String(month).padStart(2, '0') }}
+                </option>
+              </select>
+              <span aria-hidden="true">/</span>
+              <label class="sr-only" for="payment-year">Expiry year</label>
+              <select id="payment-year" v-model.number="form.expiryYear" required>
+                <option disabled value="">YYYY</option>
+                <option v-for="year in expiryYears" :key="year" :value="year">{{ year }}</option>
+              </select>
+            </div>
+          </div>
+          <label class="payment-default"
             ><input v-model="form.isDefault" type="checkbox" />Use as default payment method</label
           >
-          <div class="flex gap-3 sm:col-span-2">
+          <div class="payment-form-actions">
             <button
               type="submit"
               class="rounded-lg bg-indigo-700 px-4 py-2 font-semibold text-white"
@@ -326,3 +341,140 @@ onBeforeUnmount(() => {
     </template>
   </section>
 </template>
+
+<style scoped>
+.payment-editor {
+  max-width: 640px;
+  padding: 28px;
+  border: 1px solid #e1e5ec;
+  border-radius: 12px;
+  background: #fff;
+}
+.payment-editor-heading {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+.payment-editor-heading h2 {
+  font-size: 19px;
+  font-weight: 600;
+}
+.payment-editor-heading p {
+  margin-top: 4px;
+  color: #697586;
+  font-size: 13px;
+}
+.payment-card-icon {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border: 1px solid #e4e8ef;
+  border-radius: 9px;
+  color: #45546b;
+  flex-shrink: 0;
+}
+.payment-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px 20px;
+  margin-top: 26px;
+}
+.payment-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 500;
+}
+.payment-field > input,
+.payment-field > select,
+.payment-expiry select {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid #dfe4eb;
+  border-radius: 7px;
+  background: #fff;
+  font-size: 14px;
+  font-weight: 400;
+}
+.payment-field > small {
+  color: #697586;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.6;
+}
+.payment-card-ending {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid #dfe4eb;
+  border-radius: 7px;
+  gap: 10px;
+}
+.payment-card-ending > span {
+  color: #8a94a2;
+  white-space: nowrap;
+  font-size: 14px;
+  letter-spacing: 1px;
+}
+.payment-card-ending #payment-last-four {
+  padding: 10px 0;
+  width: 64px;
+  min-width: 0;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  font-family: monospace;
+  font-size: 16px;
+  box-shadow: none;
+  background: transparent;
+}
+.payment-card-ending:focus-within {
+  outline: 2px solid #3d53df;
+  outline-offset: 1px;
+}
+.payment-card-ending #payment-last-four:focus-visible {
+  outline: none;
+}
+.payment-expiry {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.payment-expiry > span {
+  color: #8a94a2;
+}
+.payment-default {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  grid-column: 1 / -1;
+  font-size: 13px;
+}
+.payment-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  grid-column: 1 / -1;
+  padding-top: 2px;
+}
+.payment-form-actions > button {
+  font-size: 13px;
+}
+@media (max-width: 540px) {
+  .payment-editor {
+    padding: 21px 18px;
+  }
+  .payment-fields {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .payment-editor-heading {
+    align-items: flex-start;
+  }
+}
+</style>
