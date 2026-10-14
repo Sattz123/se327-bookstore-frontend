@@ -2,7 +2,9 @@
 
 ## Product images (Stage 16)
 
-Edit a saved product in **Products and inventory** to upload, preview, replace or remove images. A product supports five PNG/JPEG images, up to 5 MB and 4096×4096 each; the first is the cover. Save a newly created product before adding its images. Image operations save immediately and preserve other unsaved form fields. Canceling the product form does not undo image changes. Image updates use the same product-version checks as inventory; reload the editor if the server reports a conflict.
+In **New product**, select and preview up to five images before saving. **Save product** creates the book and uploads those images in order, carrying forward the returned product version after each upload. The first image is the cover. If an upload fails after creation, the saved book remains open for recovery instead of creating a duplicate; check its saved images and add any missing files.
+
+Edit an existing product to upload, preview, replace or remove images. Each PNG/JPEG must be at most 5 MB and 4096×4096 pixels. These image operations save immediately and preserve other unsaved form fields. Canceling the product form does not undo saved image changes. Image updates use the same product-version checks as inventory; reload the editor if the server reports a conflict.
 
 Uploaded image URLs work in the storefront's cover components and product gallery. Select a thumbnail (or use left/right arrows while focused in the thumbnail list) to change the main image. Missing files show the existing cover fallback. The backend upload directory must be retained across restarts.
 
