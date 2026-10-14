@@ -7,6 +7,24 @@ import type {
 } from '@/types/adminProduct'
 
 export const AdminProductService = {
+  async uploadImage(
+    id: number,
+    file: File,
+    version: number,
+    index?: number,
+  ): Promise<AdminProduct> {
+    const data = new FormData()
+    data.append('file', file)
+    const path = `/admin/products/${id}/images${index === undefined ? '' : `/${index}`}`
+    return (await apiClient.post<AdminProduct>(path, data, { params: { version } })).data
+  },
+  async removeImage(id: number, index: number, version: number): Promise<AdminProduct> {
+    return (
+      await apiClient.delete<AdminProduct>(`/admin/products/${id}/images/${index}`, {
+        params: { version },
+      })
+    ).data
+  },
   async list(
     params: { q: string; categoryId?: number; visible?: boolean; page: number },
     signal?: AbortSignal,

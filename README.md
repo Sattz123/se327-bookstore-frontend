@@ -1,5 +1,11 @@
 # bookstore-frontend
 
+## Product images (Stage 16)
+
+Edit a saved product in **Products and inventory** to upload, preview, replace or remove images. A product supports five PNG/JPEG images, up to 5 MB and 4096×4096 each; the first is the cover. Save a newly created product before adding its images. Image operations save immediately and preserve other unsaved form fields. Canceling the product form does not undo image changes. Image updates use the same product-version checks as inventory; reload the editor if the server reports a conflict.
+
+Uploaded image URLs work in the storefront's cover components and product gallery. Select a thumbnail (or use left/right arrows while focused in the thumbnail list) to change the main image. Missing files show the existing cover fallback. The backend upload directory must be retained across restarts.
+
 ## Administrator products (Stage 15)
 
 Open **Products and inventory** in the back-office sidebar (`/admin/products`). Search by title/author, filter by category or visibility, and page through all books, including hidden ones. Create/edit title, author, description, price, stock, category, formats and visibility. Each table row supports a quick stock update and Hide/Show; Archive asks for confirmation and retains the record and order history. Hidden categories are labeled because they also hide their books from the storefront.

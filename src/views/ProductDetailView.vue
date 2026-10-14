@@ -38,6 +38,10 @@ const product = ref<Product | null>(null)
 const loading = ref(true)
 const error = ref<'missing' | 'unavailable' | null>(null)
 const selectedImage = ref(0)
+function nextImage(step: number) {
+  const count = product.value?.images.length ?? 0
+  if (count) selectedImage.value = (selectedImage.value + step + count) % count
+}
 let controller: AbortController | undefined
 
 async function loadProduct() {
@@ -104,7 +108,16 @@ onBeforeUnmount(() => controller?.abort())
     <div v-else-if="product" class="mt-8 grid gap-8 md:grid-cols-2 md:gap-12">
       <div class="mx-auto w-full max-w-sm">
         <BookCover :image="product.images[selectedImage]" :name="product.name" />
-        <div v-if="product.images.length > 1" class="mt-4 flex gap-3" aria-label="Book covers">
+        <p v-if="product.images.length" class="mt-3 text-center text-sm text-slate-500">
+          Image {{ selectedImage + 1 }} of {{ product.images.length }}
+        </p>
+        <div
+          v-if="product.images.length > 1"
+          class="mt-4 flex gap-3"
+          aria-label="Book covers"
+          @keydown.left.prevent="nextImage(-1)"
+          @keydown.right.prevent="nextImage(1)"
+        >
           <button
             v-for="(image, index) in product.images"
             :key="index"

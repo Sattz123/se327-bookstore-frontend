@@ -4,6 +4,7 @@ import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { AdminProductService as service } from '@/services/AdminProductService'
 import { useAuthStore } from '@/stores/auth'
+import ProductImagesEditor from '@/components/ProductImagesEditor.vue'
 import type { AdminCategory, AdminProduct, AdminProductPage } from '@/types/adminProduct'
 import type { BookFormat } from '@/types/catalog'
 import { formatLabels, formatPrice } from '@/utils/catalog'
@@ -19,6 +20,7 @@ const visibilityFilter = ref('')
 const filters = reactive<{ q: string; categoryId?: number; visible?: boolean }>({ q: '' })
 const loading = ref(false)
 const busy = ref(false)
+const imageBusy = ref(false)
 const error = ref('')
 const message = ref('')
 const showForm = ref(false)
@@ -93,6 +95,7 @@ async function load(includeCategories = false) {
   }
 }
 function cancelForm() {
+  imageBusy.value = false
   showForm.value = false
   editing.value = null
   Object.assign(form, emptyForm())
@@ -156,6 +159,7 @@ async function mutate(operation: () => Promise<unknown>, success: string, closeF
   }
 }
 async function save() {
+  if (imageBusy.value) return
   if (
     !form.name.trim() ||
     !form.categoryId ||
@@ -184,6 +188,12 @@ async function save() {
     id ? 'Product updated.' : 'Product created.',
     true,
   )
+}
+function imagesUpdated(product: AdminProduct) {
+  editing.value = product
+  const row = result.value?.content.findIndex((item) => item.id === product.id) ?? -1
+  if (result.value && row >= 0) result.value.content[row] = product
+  stockDrafts[product.id] = product.stockQuantity
 }
 function validStock(value: number | undefined): value is number {
   return value !== undefined && Number.isInteger(value) && value >= 0 && value <= 2147483647
@@ -299,7 +309,17 @@ onBeforeUnmount(() => {
       <h2 class="text-xl font-semibold">
         {{ editing ? `Edit product #${editing.id}` : 'Create product' }}
       </h2>
-      <fieldset :disabled="busy" class="mt-5 grid gap-5 md:grid-cols-2">
+      <fieldset :disabled="busy || imageBusy" class="mt-5 grid gap-5 md:grid-cols-2">
+        <ProductImagesEditor
+          v-if="editing"
+          :key="editing.id"
+          :product="editing"
+          @updated="imagesUpdated"
+          @busy="imageBusy = $event"
+        />
+        <p v-else class="text-sm text-slate-600 md:col-span-2">
+          Save the product first, then edit it to upload images.
+        </p>
         <div>
           <label for="product-name" class="block font-medium">Title</label
           ><input
