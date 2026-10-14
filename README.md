@@ -1,5 +1,11 @@
 # bookstore-frontend
 
+## Simulated payment methods (Stage 10)
+
+Signed-in users open **Payment methods** in the header or `/payment-methods`. Add fake provider/cardholder details, the last four digits only, expiry month/year, and an optional default flag. Cards are displayed masked; full card numbers and CVVs are not requested. This feature stores display records only and does not charge anything.
+
+The page supports list/add/delete/default selection, loading/retry, validation feedback, delete confirmation, and duplicate-action prevention. Failed saves retain the draft. Changing accounts discards private records and drafts and ignores late responses. Deleting the default leaves no default until the user chooses another. Backend migration V8 is required. The existing authenticated Axios client and route guards are reused.
+
 ## Address book (Stage 9)
 
 Signed-in users can open **Addresses** in the header or visit `/addresses`. The page lists delivery addresses, marks the default, and offers add/edit forms, default selection, and delete confirmation. It uses `AddressService` and the existing authenticated Axios client; no address owner ID is sent by the browser.

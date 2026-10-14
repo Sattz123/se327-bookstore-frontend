@@ -87,6 +87,12 @@ export function createBookstoreRouter(
         meta: { title: 'Address book', requiresAuth: true },
       },
       {
+        path: '/payment-methods',
+        name: 'payment-methods',
+        component: () => import('@/views/PaymentMethodsView.vue'),
+        meta: { title: 'Payment methods', requiresAuth: true },
+      },
+      {
         path: '/:pathMatch(.*)*',
         name: 'not-found',
         component: () => import('@/views/NotFoundView.vue'),
