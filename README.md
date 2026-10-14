@@ -98,3 +98,17 @@ Coverage includes all TypeScript and Vue source files, including untested files.
 This is a foundation baseline, not evidence that the full bookstore is tested. The Axios client and application bootstrap may remain uncovered at this stage. jsdom tests do not verify responsive appearance, real browser history/refresh behavior, or live backend integration; those need browser/integration checks.
 
 References: [Vitest coverage](https://vitest.dev/guide/coverage.html), [Vue Test Utils with Vue Router](https://test-utils.vuejs.org/guide/advanced/vue-router.html), [Vue ESLint configuration](https://eslint.vuejs.org/user-guide/), and [Prettier installation](https://prettier.io/docs/install).
+
+### GitHub Actions CI
+
+`.github/workflows/frontend-ci.yml` runs on pushes to any branch and on pull requests targeting `develop` or `main`.
+
+The single job uses Node.js 24 with npm caching, installs the exact dependencies from `package-lock.json` using `npm ci`, and runs `npm run check`. A failed lint, formatting check, type check, test, or build fails the job.
+
+The workflow provides `VITE_BACKEND_URL` directly, so your local `.env` is not needed. Current component tests do not make backend requests; PostgreSQL and the backend are not started in this job.
+
+Commit and push this change on `chore/quality-setup` using Fork. On GitHub, open the frontend repository's **Actions** tab and select **Frontend CI**. The **quality-checks** job shows each command's results. Download the **frontend-coverage** artifact for the HTML report, LCOV file, and coverage summary. Reports are retained for seven days. The upload step attempts to save available coverage even after a failure; earlier failures may prevent reports from being generated.
+
+This step prepares the workflow; save an actual successful GitHub run as CI evidence after pushing. SonarQube analysis will be added separately.
+
+Reference: [GitHub's setup-node action](https://github.com/actions/setup-node).
