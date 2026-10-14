@@ -18,15 +18,12 @@ const deletingId = ref<number | null>(null)
 const loadError = ref('')
 const error = ref('')
 const message = ref('')
-const currentYear = new Date().getUTCFullYear()
-const expiryYears = Array.from({ length: 21 }, (_, index) => currentYear + index)
 const cardTypes = ['Visa', 'Mastercard', 'American Express', 'Other']
 const emptyForm = () => ({
   provider: '',
   cardholderName: auth.currentUser?.username ?? '',
-  lastFour: '',
-  expiryMonth: '' as number | '',
-  expiryYear: '' as number | '',
+  cardNumber: '',
+  expiry: '',
   isDefault: false,
 })
 const form = reactive(emptyForm())
@@ -97,33 +94,39 @@ async function mutate(operation: () => Promise<unknown>, success: string) {
 
 async function saveMethod() {
   if (busy.value) return
-  const expiryMonth = Number(form.expiryMonth)
-  const expiryYear = Number(form.expiryYear)
+  const cardNumber = form.cardNumber.replace(/[ -]/g, '')
+  const expiry = /^(0[1-9]|1[0-2])\/(\d{2}|\d{4})$/.exec(form.expiry.trim())
+  const expiryMonth = Number(expiry?.[1])
+  const year = expiry?.[2] ?? ''
+  const expiryYear = year.length === 2 ? 2000 + Number(year) : Number(year)
+  const now = new Date()
   if (
     !form.provider.trim() ||
     form.provider.length > 50 ||
     !form.cardholderName.trim() ||
     form.cardholderName.length > 100 ||
-    !/^[0-9]{4}$/.test(form.lastFour) ||
+    !/^[0-9]{13,19}$/.test(cardNumber) ||
+    !expiry ||
     !Number.isInteger(expiryMonth) ||
     expiryMonth < 1 ||
     expiryMonth > 12 ||
     !Number.isInteger(expiryYear) ||
-    expiryYear < currentYear ||
-    expiryYear > currentYear + 20
+    expiryYear < now.getUTCFullYear() ||
+    (expiryYear === now.getUTCFullYear() && expiryMonth < now.getUTCMonth() + 1)
   ) {
     error.value =
-      'Choose a card type, enter the name on the card, exactly four digits, and a valid expiry date.'
+      'Choose a card type, enter the name on the card, a card number with 13–19 digits, and an unexpired date in MM/YY format.'
     return
   }
   await mutate(
     () =>
       service.addPaymentMethod({
-        ...form,
         provider: form.provider.trim(),
         cardholderName: form.cardholderName.trim(),
+        lastFour: cardNumber.slice(-4),
         expiryMonth,
         expiryYear,
+        isDefault: form.isDefault,
       }),
     'Payment method saved.',
   )
@@ -156,6 +159,7 @@ watch(
 onBeforeUnmount(() => {
   epoch++
   controller?.abort()
+  form.cardNumber = ''
 })
 </script>
 
@@ -220,44 +224,36 @@ onBeforeUnmount(() => {
               maxlength="100"
               placeholder="e.g. Alex Morgan"
           /></label>
-          <div class="payment-field">
-            <label for="payment-last-four">Last 4 digits</label>
-            <div class="payment-card-ending">
-              <span aria-hidden="true">•••• •••• ••••</span
-              ><input
-                id="payment-last-four"
-                v-model="form.lastFour"
-                required
-                inputmode="numeric"
-                pattern="[0-9]{4}"
-                minlength="4"
-                maxlength="4"
-                placeholder="1234"
-                aria-describedby="payment-digits-help"
-              />
-            </div>
+          <label class="payment-field" for="payment-card-number">
+            Card number
+            <input
+              id="payment-card-number"
+              v-model="form.cardNumber"
+              required
+              inputmode="numeric"
+              autocomplete="off"
+              maxlength="23"
+              placeholder="4242 4242 4242 4242"
+              aria-describedby="payment-digits-help"
+            />
             <small id="payment-digits-help"
-              >Use four sample digits. No full card number or security code is needed.</small
+              >Use a test card number. Only the last four digits are saved.</small
             >
-          </div>
-          <div class="payment-field">
-            <span id="payment-expiry-label">Expiry date</span>
-            <div class="payment-expiry" role="group" aria-labelledby="payment-expiry-label">
-              <label class="sr-only" for="payment-month">Expiry month</label>
-              <select id="payment-month" v-model.number="form.expiryMonth" required>
-                <option disabled value="">MM</option>
-                <option v-for="month in 12" :key="month" :value="month">
-                  {{ String(month).padStart(2, '0') }}
-                </option>
-              </select>
-              <span aria-hidden="true">/</span>
-              <label class="sr-only" for="payment-year">Expiry year</label>
-              <select id="payment-year" v-model.number="form.expiryYear" required>
-                <option disabled value="">YYYY</option>
-                <option v-for="year in expiryYears" :key="year" :value="year">{{ year }}</option>
-              </select>
-            </div>
-          </div>
+          </label>
+          <label class="payment-field" for="payment-expiry">
+            Expiry date
+            <input
+              id="payment-expiry"
+              v-model="form.expiry"
+              required
+              inputmode="text"
+              autocomplete="off"
+              maxlength="7"
+              placeholder="MM/YY"
+              aria-describedby="payment-expiry-help"
+            />
+            <small id="payment-expiry-help">Month and year, e.g. 12/30.</small>
+          </label>
           <label class="payment-default"
             ><input v-model="form.isDefault" type="checkbox" />Use as default payment method</label
           >
@@ -389,8 +385,7 @@ onBeforeUnmount(() => {
   font-weight: 500;
 }
 .payment-field > input,
-.payment-field > select,
-.payment-expiry select {
+.payment-field > select {
   width: 100%;
   min-height: 44px;
   padding: 10px 12px;
@@ -405,48 +400,6 @@ onBeforeUnmount(() => {
   font-size: 11px;
   font-weight: 400;
   line-height: 1.6;
-}
-.payment-card-ending {
-  display: flex;
-  align-items: center;
-  min-height: 44px;
-  padding: 0 12px;
-  border: 1px solid #dfe4eb;
-  border-radius: 7px;
-  gap: 10px;
-}
-.payment-card-ending > span {
-  color: #8a94a2;
-  white-space: nowrap;
-  font-size: 14px;
-  letter-spacing: 1px;
-}
-.payment-card-ending #payment-last-four {
-  padding: 10px 0;
-  width: 64px;
-  min-width: 0;
-  min-height: 0;
-  border: 0;
-  border-radius: 0;
-  font-family: monospace;
-  font-size: 16px;
-  box-shadow: none;
-  background: transparent;
-}
-.payment-card-ending:focus-within {
-  outline: 2px solid #3d53df;
-  outline-offset: 1px;
-}
-.payment-card-ending #payment-last-four:focus-visible {
-  outline: none;
-}
-.payment-expiry {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
-.payment-expiry > span {
-  color: #8a94a2;
 }
 .payment-default {
   display: flex;
