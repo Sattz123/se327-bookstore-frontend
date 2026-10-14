@@ -1,5 +1,13 @@
 # bookstore-frontend
 
+## Shopping cart (Stage 11)
+
+On a book's detail page, choose an offered format and a positive whole quantity, then add it to the cart. Guests are sent to login with a return URL. The authenticated `/cart` page supports quantity updates and removal. The header count includes quantities across every line.
+
+The cart is saved by the backend for the signed-in customer, including the selected format. Adding the same book/format increases the existing quantity; other formats create separate lines. All formats share the book's stock limit. Totals and prices come from the server, and stock is not reserved. Unavailable saved selections remain visible for correction/removal. Checkout is implemented separately in Stage 12.
+
+The Pinia store clears private cart data on account changes/logout and ignores responses from an earlier session. API errors keep existing items and edits visible, with retry feedback.
+
 ## Simulated payment methods (Stage 10)
 
 Signed-in users open **Payment methods** in the header or `/payment-methods`. Add fake provider/cardholder details, the last four digits only, expiry month/year, and an optional default flag. Cards are displayed masked; full card numbers and CVVs are not requested. This feature stores display records only and does not charge anything.

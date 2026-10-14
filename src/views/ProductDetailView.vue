@@ -4,6 +4,7 @@ import { computed, inject, onBeforeUnmount, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { piniaSymbol } from 'pinia'
 import BookCover from '@/components/BookCover.vue'
+import AddToCartForm from '@/components/AddToCartForm.vue'
 import ProductService from '@/services/ProductService'
 import type { Product } from '@/types/catalog'
 import { formatLabels, formatPrice } from '@/utils/catalog'
@@ -179,6 +180,7 @@ onBeforeUnmount(() => controller?.abort())
             <span>{{ isSaved ? 'Saved in wishlist' : 'Save to wishlist' }}</span>
           </button>
         </div>
+        <AddToCartForm :key="product.id" :product="product" />
         <h2 class="mt-8 text-lg font-semibold">About this book</h2>
         <p class="mt-3 leading-relaxed whitespace-pre-line text-slate-600">
           {{ product.description || 'No description available.' }}

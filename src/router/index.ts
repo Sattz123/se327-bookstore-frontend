@@ -87,6 +87,12 @@ export function createBookstoreRouter(
         meta: { title: 'Address book', requiresAuth: true },
       },
       {
+        path: '/cart',
+        name: 'cart',
+        component: () => import('@/views/CartView.vue'),
+        meta: { title: 'Shopping cart', requiresAuth: true },
+      },
+      {
         path: '/payment-methods',
         name: 'payment-methods',
         component: () => import('@/views/PaymentMethodsView.vue'),
