@@ -5,7 +5,7 @@ export function page(content: Product[] = [], overrides: Partial<ProductPage> = 
   return {
     content,
     page: 1,
-    size: 15,
+    size: 16,
     totalElements: content.length,
     totalPages: content.length ? 1 : 0,
     ...overrides,
