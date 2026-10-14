@@ -1,5 +1,11 @@
 # bookstore-frontend
 
+## Administrator products (Stage 15)
+
+Open **Products and inventory** in the back-office sidebar (`/admin/products`). Search by title/author, filter by category or visibility, and page through all books, including hidden ones. Create/edit title, author, description, price, stock, category, formats and visibility. Each table row supports a quick stock update and Hide/Show; Archive asks for confirmation and retains the record and order history. Hidden categories are labeled because they also hide their books from the storefront.
+
+Updates send the product version. If another edit or checkout changed it, the server returns a conflict and keeps the draft; reload the product to discard edits and use the latest version. Existing images are preserved. Image upload controls are added separately in Stage 16.
+
 ## Administrator access (Stage 14)
 
 Open `/admin/login` (also linked from the normal sign-in page). Administrator accounts use the same login API as customers. An administrator signing in normally is sent to `/admin` by default; the storefront header includes a **Back office** link. Customer credentials are rejected by the administrator sign-in flow without granting access.

@@ -29,6 +29,12 @@ export function createBookstoreRouter(
             component: () => import('@/views/AdminOverviewView.vue'),
             meta: { title: 'Administrator overview' },
           },
+          {
+            path: 'products',
+            name: 'admin-products',
+            component: () => import('@/views/AdminProductsView.vue'),
+            meta: { title: 'Products and inventory' },
+          },
           { path: ':pathMatch(.*)*', redirect: { name: 'admin-home' } },
         ],
       },
