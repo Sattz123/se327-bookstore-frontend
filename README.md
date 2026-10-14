@@ -237,3 +237,16 @@ The back-office home `/admin` now loads live totals and recent orders from
 to management details. Recent orders have ten rows per page, status labels, refresh,
 loading, retry and empty states. Book counts include hidden/archived records, all
 order statuses count, and administrators are excluded from customer counts.
+
+## Administrator profile (Stage 19)
+
+The sidebar's Admin profile link opens `/admin/profile`, within the admin layout and
+server-checked route guard. Profile and password forms use `/api/admin/profile`,
+share existing account validation, show API feedback, and prevent overlapping saves.
+Profile changes replace the returned user/JWT immediately so an email change keeps
+the session usable. Password confirmation is checked before sending, and password
+fields clear after success or leaving the page. Failed profile reads show retry
+instead of editable stale details. Password changes retain the existing JWT expiry
+behavior; already-issued tokens are not revoked by a password change.
+
+Merge `feature/admin-dashboard` into develop before `feature/admin-profile` in both repositories.

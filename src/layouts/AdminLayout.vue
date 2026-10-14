@@ -68,13 +68,16 @@ async function logout() {
           :to="{ name: 'admin-home' }"
           class="rounded-lg px-3 py-2 hover:bg-slate-800"
           exact-active-class="bg-indigo-700"
-          >Overview</RouterLink
+          >Dashboard</RouterLink
         >
         <RouterLink :to="{ name: 'home' }" class="rounded-lg px-3 py-2 hover:bg-slate-800"
           >View storefront</RouterLink
         >
-        <RouterLink :to="{ name: 'profile' }" class="rounded-lg px-3 py-2 hover:bg-slate-800"
-          >My account</RouterLink
+        <RouterLink
+          :to="{ name: 'admin-profile' }"
+          class="rounded-lg px-3 py-2 hover:bg-slate-800"
+          exact-active-class="bg-indigo-700"
+          >Admin profile</RouterLink
         >
       </nav>
       <button
