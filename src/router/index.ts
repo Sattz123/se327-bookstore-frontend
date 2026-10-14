@@ -47,6 +47,18 @@ export function createBookstoreRouter(
             component: () => import('@/views/AdminCustomersView.vue'),
             meta: { title: 'Customers' },
           },
+          {
+            path: 'orders',
+            name: 'admin-orders',
+            component: () => import('@/views/AdminOrdersView.vue'),
+            meta: { title: 'Manage orders' },
+          },
+          {
+            path: 'orders/:id',
+            name: 'admin-order-detail',
+            component: () => import('@/views/AdminOrdersView.vue'),
+            meta: { title: 'Order management' },
+          },
           { path: ':pathMatch(.*)*', redirect: { name: 'admin-home' } },
         ],
       },

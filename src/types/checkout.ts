@@ -2,6 +2,7 @@ import type { Cart } from './cart'
 import type { BookFormat } from './catalog'
 
 export type PaymentType = 'CASH_ON_DELIVERY' | 'SIMULATED_CARD'
+export type OrderStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'CANCELLED'
 export interface CheckoutReview {
   cart: Cart
   cartFingerprint: string
@@ -15,7 +16,7 @@ export interface CheckoutPayload {
 }
 export interface Order {
   id: number
-  status: 'PENDING' | 'COMPLETED'
+  status: OrderStatus
   paymentType: PaymentType
   paymentDisplay: string
   recipientName: string
