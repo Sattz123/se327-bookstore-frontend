@@ -26,3 +26,15 @@ export interface LoginPayload {
   email: string
   password: string
 }
+
+export interface UpdateProfilePayload {
+  username: string
+  email: string
+  phone?: string | null
+  avatarUrl?: string | null
+}
+
+export interface ChangePasswordPayload {
+  currentPassword: string
+  newPassword: string
+}
