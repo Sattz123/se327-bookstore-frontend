@@ -8,6 +8,8 @@ Label, recipient name, and address line are required. Phone, city, province/stat
 
 The backend guarantees at most one default per customer. Deleting the default, or clearing its checkbox while editing, leaves no default until another is chosen. After successful changes the list is reloaded from the server. Route guards send guests to sign-in with a return URL. Start the backend with migration V7 available before using this page.
 
+`AddressBook.spec.ts` covers route protection, list/loading/empty/error states, add/edit/cancel, validation failures and preserved drafts, duplicate submission prevention, default switching, confirmed deletion, missing/ownership errors, expired auth, and stale responses across account changes. `AddressService.spec.ts` checks the real Axios request configuration with a controlled adapter. Both run in the existing `npm run check` workflow.
+
 Vue 3, TypeScript, and Tailwind frontend for the bookstore reimplementation.
 
 ## Recommended IDE Setup
