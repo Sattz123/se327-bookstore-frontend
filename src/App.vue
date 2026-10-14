@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { RouterView } from 'vue-router'
+import { RouterView, useRoute } from 'vue-router'
 import AppHeader from './components/AppHeader.vue'
 import AppFooter from './components/AppFooter.vue'
+const route = useRoute()
 </script>
 
 <template>
@@ -12,14 +13,16 @@ import AppFooter from './components/AppFooter.vue'
     >
       Skip to content
     </a>
-    <AppHeader />
+    <RouterView v-if="route.meta.adminArea" />
+    <AppHeader v-if="!route.meta.adminArea" />
     <main
+      v-if="!route.meta.adminArea"
       id="main-content"
       tabindex="-1"
       class="mx-auto w-full max-w-6xl flex-1 px-5 py-12 sm:px-8 sm:py-16"
     >
       <RouterView />
     </main>
-    <AppFooter />
+    <AppFooter v-if="!route.meta.adminArea" />
   </div>
 </template>

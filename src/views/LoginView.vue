@@ -2,6 +2,9 @@
 import { ref } from 'vue'
 import { useRouter, useRoute, RouterLink } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { AuthService } from '@/services/AuthService'
+
+const props = withDefaults(defineProps<{ administrator?: boolean }>(), { administrator: false })
 
 const router = useRouter()
 const route = useRoute()
@@ -13,6 +16,7 @@ const errorMessage = ref('')
 const isLoading = ref(false)
 
 async function handleSubmit() {
+  if (isLoading.value) return
   errorMessage.value = ''
 
   if (!email.value.trim() || !password.value) {
@@ -22,11 +26,32 @@ async function handleSubmit() {
 
   isLoading.value = true
   try {
-    await authStore.login({
+    const credentials = {
       email: email.value.trim(),
       password: password.value,
-    })
-    const target = (route.query.redirect as string) || '/'
+    }
+    if (props.administrator) {
+      const data = await AuthService.login(credentials)
+      if (data.user.role !== 'ADMIN') {
+        errorMessage.value = 'This account does not have administrator access.'
+        return
+      }
+      authStore.setAuth(data)
+    } else await authStore.login(credentials)
+    const redirect = route.query.redirect
+    const safeRedirect =
+      typeof redirect === 'string' && redirect.startsWith('/') && !redirect.startsWith('//')
+    const target = props.administrator
+      ? safeRedirect &&
+        (redirect === '/admin' || redirect.startsWith('/admin/')) &&
+        !redirect.startsWith('/admin/login')
+        ? redirect
+        : '/admin'
+      : safeRedirect
+        ? redirect
+        : authStore.isAdmin
+          ? '/admin'
+          : '/'
     await router.push(target)
   } catch (err: unknown) {
     const errorResponse = (err as { response?: { data?: { detail?: string; message?: string } } })
@@ -42,11 +67,26 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <main class="mx-auto max-w-md px-5 py-12">
+  <main :id="administrator ? 'main-content' : undefined" class="mx-auto max-w-md px-5 py-12">
     <div class="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
       <div class="mb-8 text-center">
-        <h1 class="text-2xl font-bold tracking-tight text-slate-900">Sign in to your account</h1>
-        <p class="mt-2 text-sm text-slate-600">Welcome back! Please enter your details below.</p>
+        <h1 class="text-2xl font-bold tracking-tight text-slate-900">
+          {{ administrator ? 'Administrator sign in' : 'Sign in to your account' }}
+        </h1>
+        <p class="mt-2 text-sm text-slate-600">
+          {{
+            administrator
+              ? 'Sign in with an administrator account to open the back office.'
+              : 'Welcome back! Please enter your details below.'
+          }}
+        </p>
+        <p
+          v-if="administrator && route.query.reason === 'unavailable'"
+          role="alert"
+          class="mt-3 text-sm text-rose-700"
+        >
+          Unable to verify administrator access. Please try again.
+        </p>
       </div>
 
       <div
@@ -102,7 +142,7 @@ async function handleSubmit() {
         </button>
       </form>
 
-      <div class="mt-6 text-center text-sm text-slate-600">
+      <div v-if="!administrator" class="mt-6 text-center text-sm text-slate-600">
         Don't have an account?
         <RouterLink
           :to="{ name: 'register' }"
@@ -110,6 +150,13 @@ async function handleSubmit() {
         >
           Create one now
         </RouterLink>
+      </div>
+      <div class="mt-5 text-center text-sm">
+        <RouterLink
+          :to="administrator ? { name: 'home' } : { name: 'admin-login' }"
+          class="font-medium text-indigo-600 hover:underline"
+          >{{ administrator ? 'Return to storefront' : 'Administrator sign in' }}</RouterLink
+        >
       </div>
     </div>
   </main>

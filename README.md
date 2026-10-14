@@ -1,5 +1,11 @@
 # bookstore-frontend
 
+## Administrator access (Stage 14)
+
+Open `/admin/login` (also linked from the normal sign-in page). Administrator accounts use the same login API as customers. An administrator signing in normally is sent to `/admin` by default; the storefront header includes a **Back office** link. Customer credentials are rejected by the administrator sign-in flow without granting access.
+
+The `/admin` layout has an Overview sidebar, storefront/account links, and sign-out. Each administrator navigation validates the JWT against the protected `/api/admin/session` endpoint instead of trusting the saved browser role. Guests go to administrator login with a return URL; customers receive an access-denied page. The backend enforces roles independently. Logout/role changes remove the private layout. Product/inventory management will be added in Stage 15.
+
 ## Customer order history (Stage 13)
 
 Use **Orders** in the signed-in header to open `/orders`. Purchases appear newest first with their date, payment display, saved total and Pending/Completed status. Open an order to view `/orders/:id`, including the original titles, formats, quantities, prices and delivery details. Checkout confirmation links to that order and the full history. Both routes require login; empty history, loading, unavailable orders and retry states are handled. Order data is cleared on account changes.
