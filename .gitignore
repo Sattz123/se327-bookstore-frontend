@@ -42,3 +42,6 @@ __screenshots__/
 .env
 .env.*
 !.env.example
+!.env.sonar.example
+.scannerwork/
+.sonar/

@@ -109,6 +109,35 @@ The workflow provides `VITE_BACKEND_URL` directly, so your local `.env` is not n
 
 Commit and push this change on `chore/quality-setup` using Fork. On GitHub, open the frontend repository's **Actions** tab and select **Frontend CI**. The **quality-checks** job shows each command's results. Download the **frontend-coverage** artifact for the HTML report, LCOV file, and coverage summary. Reports are retained for seven days. The upload step attempts to save available coverage even after a failure; earlier failures may prevent reports from being generated.
 
-This step prepares the workflow; save an actual successful GitHub run as CI evidence after pushing. SonarQube analysis will be added separately.
+Save an actual successful GitHub run as CI evidence after pushing. Local SonarQube analysis is run separately as described below.
 
 Reference: [GitHub's setup-node action](https://github.com/actions/setup-node).
+
+### Local SonarQube analysis
+
+Use the existing local SonarQube Docker container at `http://localhost:9000`; start it with `docker start sonarqube` if stopped. A fresh machine needs its own SonarQube installation first.
+
+First setup:
+
+1. Log in and create a local project with key `se327-bookstore-frontend` and name `SE327 Bookstore Frontend`.
+2. Select its built-in **Sonar way** quality gate. Record the actual gate conditions shown on the server as tool settings, not an invented course requirement.
+3. Generate a **Project Analysis Token** for this frontend project under **My Account > Security**, with an appropriate expiry date.
+4. Copy `.env.sonar.example` to `.env.sonar` and paste the token after `SONAR_TOKEN=`. Use unquoted `KEY=value` lines. This file is ignored by Git; do not put tokens in screenshots or the report.
+
+With Docker Desktop and Node.js running, execute from this frontend folder:
+
+```powershell
+.\scripts\sonar.ps1
+```
+
+The script runs `npm run check`, normalizes Windows source paths in the generated LCOV file, and launches SonarSource's official scanner Docker image. It maps the server's `localhost` address to `host.docker.internal` for Docker Desktop. The source folder is mounted at `/usr/src`, and scanner downloads are cached in the `se327-sonar-scanner-cache` Docker volume. The scanner uses `sonar-project.properties` and imports `coverage/lcov.info`.
+
+`sonar.qualitygate.wait=true` makes a failed gate fail the scan command. The script restores the prior token/server environment variables afterward. No extra scanner npm dependency is required.
+
+Community Build provides one analysis stream per project, without separate feature-branch or pull-request reports. Normally scan the integrated `develop` snapshot. A pre-merge scan examines the current checkout but replaces that same Sonar project snapshot. Record the actual Git branch, commit, and any uncommitted source changes; the Sonar main-branch label does not prove that Git `main` was scanned.
+
+GitHub-hosted CI cannot reach your laptop's local server. Build/test CI continues on GitHub; Sonar scans run manually here. Automatic scans would need a separately configured self-hosted runner or a reachable server. If added later, use GitHub Actions secrets for tokens.
+
+After scanning, save the frontend dashboard's quality-gate result, coverage, findings, new-code definition, and actual gate conditions for the report. Coverage includes implementation source; test files and declarations are classified separately. Until a real scan completes, this is configuration rather than a successful analysis result.
+
+References: [SonarScanner Docker usage](https://docs.sonarsource.com/sonarqube-community-build/analyzing-source-code/scanners/sonarscanner#sonarscanner-from-docker-image), [LCOV coverage import](https://docs.sonarsource.com/sonarqube-community-build/analyzing-source-code/test-coverage/javascript-typescript-test-coverage), and [SonarQube tokens](https://docs.sonarsource.com/sonarqube-community-build/user-guide/managing-tokens).
