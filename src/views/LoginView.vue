@@ -74,6 +74,12 @@ async function handleSubmit() {
         <div>
           <div class="flex items-center justify-between">
             <label for="password" class="block text-sm font-medium text-slate-700">Password</label>
+            <RouterLink
+              :to="{ name: 'forgot-password' }"
+              class="text-xs font-medium text-indigo-600 hover:text-indigo-500"
+            >
+              Forgot password?
+            </RouterLink>
           </div>
           <input
             id="password"
