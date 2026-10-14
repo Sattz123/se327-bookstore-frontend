@@ -68,6 +68,7 @@ describe('customer order pages', () => {
   it('shows purchased snapshots, quantities, delivery and cash payment without a card notice', async () => {
     const { view } = await render('/orders/41')
     expect(view.get('[aria-label="Purchased items"]').text()).toContain('The Great Gatsby')
+    expect(view.get('[aria-label="Purchased items"]').text()).toContain('Paperback')
     expect(view.get('[aria-label="Purchased items"]').text()).toContain('2 × $19.95')
     expect(view.get('address').text()).toContain('123 Test Street')
     expect(view.get('aside').text()).toContain('$39.90')
