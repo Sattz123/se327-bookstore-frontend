@@ -104,3 +104,17 @@ it('clears authentication and private data after an expired session', async () =
   expect(cart.cart.items).toEqual([])
   expect(cart.count).toBe(0)
 })
+
+it('does not let a late cart mutation restore purchased items after checkout', async () => {
+  const cart = useCartStore()
+  await flushPromises()
+  const pending = deferred<Cart>()
+  service.updateQuantity.mockReturnValueOnce(pending.promise)
+  const update = cart.updateQuantity(10, 2)
+  service.getCart.mockResolvedValueOnce(savedCart([]))
+  await cart.refreshAfterCheckout()
+  pending.resolve(savedCart())
+  expect(await update).toBe(false)
+  expect(cart.cart.items).toEqual([])
+  expect(cart.count).toBe(0)
+})

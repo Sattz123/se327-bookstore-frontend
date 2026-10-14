@@ -53,21 +53,21 @@ export const useCartStore = defineStore('cart', () => {
   async function mutate(operation: () => Promise<Cart>) {
     if (!auth.isAuthenticated || busy.value) return false
     const owner = session
-    ++revision
+    const request = ++revision
     controller?.abort()
     loading.value = false
     busy.value = true
     error.value = ''
     try {
       const data = await operation()
-      if (owner !== session) return false
+      if (owner !== session || request !== revision) return false
       cart.value = data
       return true
     } catch (cause) {
-      if (owner === session) report(cause)
+      if (owner === session && request === revision) report(cause)
       return false
     } finally {
-      if (owner === session) busy.value = false
+      if (owner === session && request === revision) busy.value = false
     }
   }
   function addItem(payload: AddToCartPayload) {
@@ -78,6 +78,15 @@ export const useCartStore = defineStore('cart', () => {
   }
   function removeItem(id: number) {
     return mutate(() => CartService.removeItem(id))
+  }
+
+  async function refreshAfterCheckout() {
+    ++revision
+    controller?.abort()
+    cart.value = emptyCart()
+    loading.value = false
+    busy.value = false
+    return fetchCart()
   }
 
   watch(
@@ -95,5 +104,16 @@ export const useCartStore = defineStore('cart', () => {
     { immediate: true, flush: 'sync' },
   )
 
-  return { cart, count, loading, busy, error, fetchCart, addItem, updateQuantity, removeItem }
+  return {
+    cart,
+    count,
+    loading,
+    busy,
+    error,
+    fetchCart,
+    addItem,
+    updateQuantity,
+    removeItem,
+    refreshAfterCheckout,
+  }
 })

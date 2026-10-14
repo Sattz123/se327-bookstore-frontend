@@ -1,5 +1,11 @@
 # bookstore-frontend
 
+## Checkout (Stage 12)
+
+Proceed from the cart to `/checkout`, select a saved delivery address and either cash on delivery or a saved simulated card, then review the server-priced items and total. Cash creates a pending order; simulated card payment creates a completed order without a real charge. Confirmation at `/checkout/confirmation/:id` reloads saved order snapshots and is owner-only.
+
+Price/cart changes or stock conflicts stop the purchase and require a fresh review. Errors preserve the cart. After a lost response, **Retry order** reuses the exact payload and UUID to recover the original result. The pending request is retained in session storage for that customer across page reloads; choices remain locked until the server resolves it. A successful checkout clears the pending key and refreshes the cart count. Account changes clear private screen data and ignore earlier responses.
+
 ## Shopping cart (Stage 11)
 
 On a book's detail page, choose an offered format and a positive whole quantity, then add it to the cart. Guests are sent to login with a return URL. The authenticated `/cart` page supports quantity updates and removal. The header count includes quantities across every line.
