@@ -99,11 +99,10 @@ describe('saved payment methods', () => {
   }
   async function fillForm() {
     await click('Add payment method')
-    await wrapper!.get('#payment-provider').setValue('  Visa  ')
+    await wrapper!.get('#payment-provider').setValue('Visa')
     await wrapper!.get('#payment-name').setValue('  Demo Reader  ')
-    await wrapper!.get('#payment-last-four').setValue('1234')
-    await wrapper!.get('#payment-month').setValue(12)
-    await wrapper!.get('#payment-year').setValue(2030)
+    await wrapper!.get('#payment-card-number').setValue('4242 4242 4242 1234')
+    await wrapper!.get('#payment-expiry').setValue('12/30')
   }
   async function submit() {
     await wrapper!.get('main form').trigger('submit')
@@ -126,7 +125,7 @@ describe('saved payment methods', () => {
     expect(app.get('main').text()).toContain('Default payment method')
     expect(app.get('header a[href="/payment-methods"]').text()).toBe('Payment methods')
     await fillForm()
-    expect(app.get('#payment-last-four').attributes('maxlength')).toBe('4')
+    expect(app.get('#payment-card-number').attributes('maxlength')).toBe('23')
     expect(app.find('input[autocomplete="cc-number"]').exists()).toBe(false)
     expect(app.find('input[autocomplete="cc-csc"]').exists()).toBe(false)
   })
@@ -138,6 +137,27 @@ describe('saved payment methods', () => {
     pending.resolve([])
     await flushPromises()
     expect(app.get('main').text()).toContain('No saved payment methods')
+  })
+  it('shows the first name in the account button and updates after a profile change', async () => {
+    useAuthStore().setAuth({
+      token: 'test-token',
+      user: { ...reader, username: '  Alex Morgan  ' },
+    })
+    const app = await render()
+    expect(app.get('summary.account-trigger span').text()).toBe('Alex')
+    useAuthStore().setAuth({ token: 'test-token', user: { ...reader, username: 'Sam Jones' } })
+    await flushPromises()
+    expect(app.get('summary.account-trigger span').text()).toBe('Sam')
+  })
+  it('uses a card-type selector and a blank typed expiry field', async () => {
+    const app = await render()
+    await click('Add payment method')
+    expect(app.get('#payment-provider').element.tagName).toBe('SELECT')
+    expect(app.get<HTMLInputElement>('#payment-expiry').element.value).toBe('')
+    expect(app.get('#payment-expiry').element.tagName).toBe('INPUT')
+    expect(app.get<HTMLInputElement>('#payment-name').element.value).toBe('Reader')
+    await submit()
+    expect(service.addPaymentMethod).not.toHaveBeenCalled()
   })
   it('retries loading after a network failure', async () => {
     service.getPaymentMethods.mockRejectedValueOnce(new Error('Offline'))
@@ -164,15 +184,15 @@ describe('saved payment methods', () => {
     expect(app.get('main').text()).toContain('Payment method saved.')
     expect(service.getPaymentMethods).toHaveBeenCalledTimes(2)
   })
-  it.each(['123', '1234567890123456', 'abcd'])(
-    'rejects invalid last-four value %s',
+  it.each(['1234', '12345678901234567890', 'abcd', '4242 4242 abcd 1234'])(
+    'rejects invalid full card number %s',
     async (value) => {
       const app = await render()
       await fillForm()
-      await app.get('#payment-last-four').setValue(value)
+      await app.get('#payment-card-number').setValue(value)
       await submit()
       expect(service.addPaymentMethod).not.toHaveBeenCalled()
-      expect(app.get('[role="alert"]').text()).toContain('exactly four digits')
+      expect(app.get('[role="alert"]').text()).toContain('13–19 digits')
     },
   )
   it('retains a draft and displays server validation feedback', async () => {
@@ -184,9 +204,36 @@ describe('saved payment methods', () => {
     await fillForm()
     await submit()
     expect(app.get('[role="alert"]').text()).toContain('Expiry date must not be in the past.')
-    expect((app.get('#payment-last-four').element as HTMLInputElement).value).toBe('1234')
+    expect((app.get('#payment-card-number').element as HTMLInputElement).value).toBe(
+      '4242 4242 4242 1234',
+    )
     await click('Cancel')
     expect(app.find('main form').exists()).toBe(false)
+  })
+  it.each(['13/30', '00/30', '12/20', 'abcd', ''])(
+    'rejects invalid or expired date %s',
+    async (expiry) => {
+      const app = await render()
+      await fillForm()
+      await app.get('#payment-expiry').setValue(expiry)
+      await submit()
+      expect(service.addPaymentMethod).not.toHaveBeenCalled()
+      expect(app.get('[role="alert"]').text()).toContain('MM/YY')
+    },
+  )
+  it('accepts a typed four-digit year and keeps the full number out of the request', async () => {
+    const app = await render()
+    await fillForm()
+    await app.get('#payment-expiry').setValue('12/2030')
+    await submit()
+    expect(service.addPaymentMethod).toHaveBeenCalledWith({
+      provider: 'Visa',
+      cardholderName: 'Demo Reader',
+      lastFour: '1234',
+      expiryMonth: 12,
+      expiryYear: 2030,
+      isDefault: false,
+    })
   })
   it('prevents repeated submissions while saving', async () => {
     const pending = deferred<PaymentMethod>()
