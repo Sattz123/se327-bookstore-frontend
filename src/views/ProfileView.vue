@@ -226,7 +226,7 @@ async function handlePasswordChange() {
             {{ profileErrorMessage }}
           </div>
 
-          <form class="mt-6 space-y-4" @submit.prevent="handleProfileUpdate">
+          <form id="profile-form" class="mt-6 space-y-4" @submit.prevent="handleProfileUpdate">
             <div>
               <label for="profile-name" class="block text-sm font-medium text-slate-700">
                 Full name
@@ -313,7 +313,7 @@ async function handlePasswordChange() {
             {{ passwordErrorMessage }}
           </div>
 
-          <form class="mt-6 space-y-4" @submit.prevent="handlePasswordChange">
+          <form id="password-form" class="mt-6 space-y-4" @submit.prevent="handlePasswordChange">
             <div>
               <label for="current-password" class="block text-sm font-medium text-slate-700">
                 Current password
