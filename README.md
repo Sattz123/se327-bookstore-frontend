@@ -1,6 +1,6 @@
 # bookstore-frontend
 
-This template should help get you started developing with Vue 3 in Vite.
+Vue 3, TypeScript, and Tailwind frontend for the bookstore reimplementation.
 
 ## Recommended IDE Setup
 
@@ -49,12 +49,12 @@ Tailwind is installed through its Vite plugin. `src/assets/main.css` imports Tai
 
 `App.vue` contains the shared `AppHeader`, main `RouterView`, and `AppFooter`. Navigation wraps on narrow screens and highlights the current page. Keyboard users can skip directly to the main content.
 
-| Path | Current page |
-| --- | --- |
-| `/` | Basic welcome page |
-| `/products` | Books placeholder |
-| `/categories` | Categories placeholder |
-| `/contact` | Contact placeholder |
+| Path              | Current page                    |
+| ----------------- | ------------------------------- |
+| `/`               | Basic welcome page              |
+| `/products`       | Books placeholder               |
+| `/categories`     | Categories placeholder          |
+| `/contact`        | Contact placeholder             |
 | Any unmatched URL | Not-found page with a link home |
 
 The placeholders share `ComingSoonView.vue` and will be replaced as each feature is implemented. This layout makes no backend requests yet. Pinia remains installed for future feature stores; the generated counter example has been removed.
@@ -74,3 +74,27 @@ npm run dev
 ```sh
 npm run build
 ```
+
+### Linting, formatting, tests, and coverage
+
+Run commands from this frontend folder. The component tests use Vitest, Vue Test Utils, and jsdom; they do not require PostgreSQL, the backend, or the Vite server.
+
+| Command                 | What it does                                                                            |
+| ----------------------- | --------------------------------------------------------------------------------------- |
+| `npm run lint`          | Check Vue/TypeScript code with ESLint; warnings also fail the command                   |
+| `npm run lint:fix`      | Apply available ESLint fixes                                                            |
+| `npm run format:check`  | Check formatting without changing files                                                 |
+| `npm run format`        | Format source, configuration, and documentation using Prettier                          |
+| `npm run type-check`    | Check application, tooling, and test TypeScript                                         |
+| `npm test`              | Run component tests once                                                                |
+| `npm run test:watch`    | Rerun tests while editing                                                               |
+| `npm run test:coverage` | Run tests and generate V8 coverage reports                                              |
+| `npm run check`         | Run lint, formatting checks, type checks, tests with coverage, and the production build |
+
+The layout tests mount the real application with a fresh in-memory router for each test. They check header/footer navigation, active links, direct route entry, placeholder pages, page titles, unknown URLs, and returning home from the 404 page. Only jsdom's unsupported scrolling API is stubbed. `createBookstoreRouter` supplies the same route configuration to the app and tests; the running app keeps browser history.
+
+Coverage includes all TypeScript and Vue source files, including untested files. Test files and type declarations are excluded. Inspect statements, branches, functions, and lines in `coverage/index.html`; `coverage/lcov.info` is available for the later SonarQube setup, and `coverage/coverage-summary.json` contains totals. Reports and build output are ignored by Git. No coverage threshold is imposed at this step.
+
+This is a foundation baseline, not evidence that the full bookstore is tested. The Axios client and application bootstrap may remain uncovered at this stage. jsdom tests do not verify responsive appearance, real browser history/refresh behavior, or live backend integration; those need browser/integration checks.
+
+References: [Vitest coverage](https://vitest.dev/guide/coverage.html), [Vue Test Utils with Vue Router](https://test-utils.vuejs.org/guide/advanced/vue-router.html), [Vue ESLint configuration](https://eslint.vuejs.org/user-guide/), and [Prettier installation](https://prettier.io/docs/install).
