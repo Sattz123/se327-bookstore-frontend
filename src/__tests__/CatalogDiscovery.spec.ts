@@ -90,10 +90,10 @@ describe('catalog discovery', () => {
 
   it('lists returned categories without inventing hidden categories', async () => {
     const app = await renderAt('/categories')
-    expect(app.get('main h1').text()).toBe('Categories')
+    expect(app.get('main h1').text()).toBe('Shop by category')
     expect(
       app
-        .get('ul')
+        .get('.category-collection')
         .findAll('a')
         .map((link) => link.attributes('href')),
     ).toEqual(['/categories/1', '/categories/2'])
@@ -120,7 +120,7 @@ describe('catalog discovery', () => {
     expect(app.get('[role="alert"]').text()).toContain("We couldn't load the categories")
     await app.get('[role="alert"] button').trigger('click')
     await flushPromises()
-    expect(app.get('ul').findAll('a')).toHaveLength(2)
+    expect(app.get('.category-collection').findAll('a')).toHaveLength(2)
   })
 
   it('restores combined search, category, and page from a direct URL', async () => {

@@ -96,9 +96,8 @@ onBeforeUnmount(() => controller?.abort())
         </section>
         <section aria-labelledby="topics-heading" class="store-section">
           <div class="store-section-heading">
-            <span>Something for everyone</span>
+            <span>Explore</span>
             <h2 id="topics-heading">Browse by category</h2>
-            <p>Follow your curiosity. Find a shelf that feels like you.</p>
           </div>
           <CategoryGrid v-if="categories.length" :categories="categories" />
           <p v-else class="text-center text-sm text-slate-500">No categories available yet.</p>

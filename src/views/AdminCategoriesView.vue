@@ -2,14 +2,11 @@
 import { isAxiosError } from 'axios'
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
-import CategoryIcon from '@/components/CategoryIcon.vue'
-import AppIcon from '@/components/AppIcon.vue'
 import {
   AdminCategoryService as service,
   type ManagedCategory,
 } from '@/services/AdminCategoryService'
 import { useAuthStore } from '@/stores/auth'
-import { resolveImageUrl } from '@/utils/catalog'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -24,12 +21,7 @@ const visibilityFilter = ref('')
 const showForm = ref(false)
 const editing = ref<ManagedCategory | null>(null)
 const deleting = ref<ManagedCategory | null>(null)
-const form = reactive({ name: '', imageUrl: '', visible: true })
-const file = ref<File | null>(null)
-const fileInput = ref<HTMLInputElement | null>(null)
-const preview = ref('')
-const imageError = ref('')
-const previewUrl = computed(() => preview.value || resolveImageUrl(form.imageUrl || undefined))
+const form = reactive({ name: '', visible: true })
 const filtered = computed(() =>
   categories.value.filter(
     (category) =>
@@ -40,37 +32,10 @@ const filtered = computed(() =>
 let epoch = 0
 let controller: AbortController | undefined
 
-function clearFile(resetInput = true) {
-  if (preview.value) window.URL.revokeObjectURL(preview.value)
-  preview.value = ''
-  file.value = null
-  imageError.value = ''
-  if (resetInput && fileInput.value) fileInput.value.value = ''
-}
-function selectFile(event: Event) {
-  const selected = (event.target as HTMLInputElement).files?.[0]
-  clearFile(false)
-  if (!selected) return
-  if (
-    !['image/png', 'image/jpeg'].includes(selected.type) ||
-    selected.size < 1 ||
-    selected.size > 5 * 1024 * 1024
-  ) {
-    imageError.value = 'Choose a PNG or JPEG image no larger than 5 MB.'
-    return
-  }
-  file.value = selected
-  preview.value = window.URL.createObjectURL(selected)
-}
-function removeImage() {
-  clearFile()
-  form.imageUrl = ''
-}
 function cancel() {
-  clearFile()
   editing.value = null
   showForm.value = false
-  Object.assign(form, { name: '', imageUrl: '', visible: true })
+  Object.assign(form, { name: '', visible: true })
 }
 function create() {
   cancel()
@@ -127,12 +92,10 @@ async function edit(id: number) {
   try {
     const category = await service.get(id)
     if (session !== epoch) return
-    clearFile()
     editing.value = category
     deleting.value = null
     Object.assign(form, {
       name: category.name,
-      imageUrl: category.imageUrl ?? '',
       visible: category.visible,
     })
     showForm.value = true
@@ -163,7 +126,7 @@ async function mutate(operation: () => Promise<unknown>, success: string, closeF
   }
 }
 function save() {
-  if (busy.value || imageError.value) return
+  if (busy.value) return
   if (!form.name.trim()) {
     error.value = 'Category name is required.'
     return
@@ -171,13 +134,12 @@ function save() {
   const id = editing.value?.id ?? null
   const payload = {
     name: form.name.trim(),
-    imageUrl: file.value ? null : form.imageUrl.trim() || null,
+    imageUrl: editing.value?.imageUrl ?? null,
     visible: form.visible,
     version: editing.value?.version ?? null,
   }
-  const selected = file.value
   return mutate(
-    () => service.save(id, payload, selected),
+    () => service.save(id, payload, null),
     id === null ? 'Category created.' : 'Category updated.',
     true,
   )
@@ -215,7 +177,6 @@ watch(
 onBeforeUnmount(() => {
   epoch++
   controller?.abort()
-  clearFile()
 })
 </script>
 
@@ -227,7 +188,7 @@ onBeforeUnmount(() => {
           {{ showForm ? (editing ? 'Edit category' : 'New category') : 'Categories' }}
         </h1>
         <p class="mt-2 text-slate-600">
-          Manage category names, images and visibility. Hiding a category also hides its books from
+          Manage category names and visibility. Hiding a category also hides its books from
           browsing.
         </p>
       </div>
@@ -284,66 +245,12 @@ onBeforeUnmount(() => {
             class="mt-1 w-full rounded-lg border border-slate-300 p-2"
           />
         </div>
-        <div class="image-manager">
-          <div class="image-manager-heading">
-            <h3>Category image</h3>
-            <span>Optional</span>
-          </div>
-          <p class="mt-2">
-            JPEG or PNG, up to 5 MB and 4096 × 4096 pixels. Saved with the category.
-          </p>
-          <div class="image-chooser">
-            <span class="image-chooser-icon"><AppIcon name="image" :size="23" /></span>
-            <div class="image-chooser-copy">
-              <strong>{{ file ? file.name : 'Choose a category image' }}</strong
-              ><small>Use a square image for the best result.</small>
-            </div>
-            <input
-              id="category-image"
-              ref="fileInput"
-              type="file"
-              accept="image/png,image/jpeg"
-              class="image-file-input"
-              @change="selectFile"
-            />
-            <label for="category-image" class="image-choose-button"
-              ><AppIcon name="upload" :size="14" />Choose image</label
-            >
-          </div>
-          <p v-if="imageError" role="alert" class="mt-2 text-rose-700">{{ imageError }}</p>
-          <img
-            v-if="previewUrl"
-            :src="previewUrl"
-            alt="Category image preview"
-            class="mt-3 h-32 w-32 rounded-lg object-cover"
-          /><button
-            v-if="previewUrl || imageError"
-            type="button"
-            class="mt-3 text-sm text-rose-700 underline"
-            @click="removeImage"
-          >
-            Remove image
-          </button>
-        </div>
-        <div>
-          <label for="category-image-url" class="block text-sm font-medium"
-            >Or use an existing image URL</label
-          ><input
-            id="category-image-url"
-            v-model="form.imageUrl"
-            :disabled="!!file"
-            maxlength="500"
-            placeholder="https://… or /images/…"
-            class="mt-1 w-full rounded-lg border border-slate-300 p-2 text-sm"
-          />
-        </div>
         <label class="flex items-center gap-2"
           ><input v-model="form.visible" type="checkbox" />Visible in storefront</label
         >
         <div class="admin-editor-actions flex gap-4">
           <button
             type="submit"
-            :disabled="!!imageError"
             class="rounded-lg bg-indigo-700 px-4 py-2 font-semibold text-white disabled:opacity-50"
           >
             {{ busy ? 'Saving…' : 'Save category' }}</button
@@ -422,7 +329,6 @@ onBeforeUnmount(() => {
             <tr v-for="category in filtered" :key="category.id" class="border-t border-slate-200">
               <td class="p-4">
                 <div class="flex items-center gap-3">
-                  <CategoryIcon :name="category.name" :image="category.imageUrl" />
                   <div>
                     <p class="font-semibold">{{ category.name }}</p>
                     <p class="text-xs text-slate-500">#{{ category.id }}</p>
