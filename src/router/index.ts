@@ -45,6 +45,18 @@ export function createBookstoreRouter(
         meta: { title: 'Contact' },
       },
       {
+        path: '/login',
+        name: 'login',
+        component: () => import('@/views/LoginView.vue'),
+        meta: { title: 'Sign In', guestOnly: true },
+      },
+      {
+        path: '/register',
+        name: 'register',
+        component: () => import('@/views/RegisterView.vue'),
+        meta: { title: 'Register', guestOnly: true },
+      },
+      {
         path: '/:pathMatch(.*)*',
         name: 'not-found',
         component: () => import('@/views/NotFoundView.vue'),
@@ -54,6 +66,35 @@ export function createBookstoreRouter(
     scrollBehavior(_to, _from, savedPosition) {
       return savedPosition ?? { top: 0 }
     },
+  })
+
+  router.beforeEach((to) => {
+    const token = localStorage.getItem('auth_token')
+    const userStr = localStorage.getItem('auth_user')
+    const isAuthenticated = !!token && !!userStr
+    let role: string | null = null
+    if (userStr) {
+      try {
+        role = JSON.parse(userStr).role
+      } catch {
+        role = null
+      }
+    }
+
+    if (to.meta.guestOnly && isAuthenticated) {
+      return { name: 'home' }
+    }
+
+    if (to.meta.requiresAuth && !isAuthenticated) {
+      return {
+        name: 'login',
+        query: { redirect: to.fullPath },
+      }
+    }
+
+    if (to.meta.requiresAdmin && (!isAuthenticated || role !== 'ADMIN')) {
+      return { name: 'home' }
+    }
   })
 
   router.afterEach((to) => {
