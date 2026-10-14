@@ -35,7 +35,7 @@ On first setup, copy `.env.example` to `.env` in this frontend folder (PowerShel
 
 `VITE_BACKEND_URL` sets the Axios base URL and defaults to `http://localhost:8080/api` when absent. This is the frontend's own setting; it does not read the backend's `.env`. Restart Vite after changing it. Vite includes `VITE_` settings in the browser bundle, so they must not contain secrets. Production builds use the value present when building.
 
-Import the shared client from `@/services/apiClient` in future API services. For example, `apiClient.get('/products')` will request `http://localhost:8080/api/products` with the example configuration. Product endpoints will be added in a later stage.
+`ProductService` uses the shared Axios client to request `GET /products` and `GET /products/{id}`. With the example configuration these resolve to `http://localhost:8080/api/products` and its detail routes. Run the backend and its PostgreSQL database alongside Vite. The backend's local `dev` profile provides the five categories, 60 books, and covers.
 
 The client accepts JSON responses and uses a 10-second timeout. Feature services handle responses and errors as they are implemented.
 
@@ -52,12 +52,21 @@ Tailwind is installed through its Vite plugin. `src/assets/main.css` imports Tai
 | Path              | Current page                    |
 | ----------------- | ------------------------------- |
 | `/`               | Basic welcome page              |
-| `/products`       | Books placeholder               |
+| `/products`       | Live book catalog               |
+| `/products/:id`   | Book details                    |
 | `/categories`     | Categories placeholder          |
 | `/contact`        | Contact placeholder             |
 | Any unmatched URL | Not-found page with a link home |
 
-The placeholders share `ComingSoonView.vue` and will be replaced as each feature is implemented. This layout makes no backend requests yet. Pinia remains installed for future feature stores; the generated counter example has been removed.
+Categories and contact still share `ComingSoonView.vue` and will be replaced in later stages. Pinia remains installed for future feature stores; the generated counter example has been removed.
+
+### Book catalog
+
+`src/types/catalog.ts` matches the backend's product/category DTOs. `ProductListView` displays a responsive grid of `BookCard` components; selecting a card opens `ProductDetailView`. Detail pages show the author, category, description, price, stock, formats, and ordered covers. Prices use dollars to match the original bookstore. Category discovery, search, and pagination come in Stage 4; this version lists the full visible catalog.
+
+Both views display loading, failure/retry, and empty or missing-book states. Hidden books and books in hidden categories are omitted by the backend. Out-of-stock books remain viewable. Route changes cancel old requests so a delayed response cannot replace the next book. `BookCover` resolves image paths against the API's backend origin and shows a fallback when no cover is available or an image fails.
+
+To try it locally, start the backend with its development profile, run `npm run dev`, visit `/products`, and select a book. Refreshing `/products/1` also loads the detail directly. There are no cart or checkout controls at this stage.
 
 Routes use browser history. Vite handles direct visits and refreshes during development; the production host must serve `index.html` for frontend routes. See [Vue Router history mode](https://router.vuejs.org/guide/essentials/history-mode.html).
 
@@ -91,7 +100,9 @@ Run commands from this frontend folder. The component tests use Vitest, Vue Test
 | `npm run test:coverage` | Run tests and generate V8 coverage reports                                              |
 | `npm run check`         | Run lint, formatting checks, type checks, tests with coverage, and the production build |
 
-The layout tests mount the real application with a fresh in-memory router for each test. They check header/footer navigation, active links, direct route entry, placeholder pages, page titles, unknown URLs, and returning home from the 404 page. Only jsdom's unsupported scrolling API is stubbed. `createBookstoreRouter` supplies the same route configuration to the app and tests; the running app keeps browser history.
+The layout tests mount the real application with a fresh in-memory router for each test. They check header/footer navigation, active links, direct route entry, placeholder pages, page titles, unknown URLs, and returning home from the 404 page. The catalog service is mocked so these tests make no network requests; jsdom's unsupported scrolling API is stubbed. `createBookstoreRouter` supplies the same route configuration to the app and tests; the running app keeps browser history.
+
+`ProductCatalog.spec.ts` mounts the actual app/routes and covers list/detail success, loading, empty results, 404/invalid IDs, server/network failures and retries, optional fields, stock, cover selection/fallbacks, and cancellation of stale requests. `ProductService.spec.ts` uses a controlled Axios adapter to verify HTTP requests without a running server and checks display/image URL helpers. The existing `npm run check` CI job runs all tests and generates coverage.
 
 Coverage includes all TypeScript and Vue source files, including untested files. Test files and type declarations are excluded. Inspect statements, branches, functions, and lines in `coverage/index.html`; `coverage/lcov.info` is available for the later SonarQube setup, and `coverage/coverage-summary.json` contains totals. Reports and build output are ignored by Git. No coverage threshold is imposed at this step.
 
