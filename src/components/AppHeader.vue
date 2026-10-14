@@ -1,161 +1,204 @@
 <script setup lang="ts">
-import { computed, inject, ref, watch } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
+import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { piniaSymbol } from 'pinia'
+import AppIcon from '@/components/AppIcon.vue'
+import CategoryService from '@/services/CategoryService'
 import { useAuthStore } from '@/stores/auth'
 import { useWishlistStore } from '@/stores/wishlist'
 import { useCartStore } from '@/stores/cart'
+import type { Category } from '@/types/catalog'
 
 const router = useRouter()
+const route = useRoute()
 const hasPinia = inject(piniaSymbol, null) !== null
-const authStore = hasPinia ? useAuthStore() : null
-const wishlistStore = hasPinia ? useWishlistStore() : null
-const cartStore = hasPinia ? useCartStore() : null
-
-const links = [
-  { name: 'home', label: 'Home' },
-  { name: 'products', label: 'Books' },
-  { name: 'categories', label: 'Categories' },
-  { name: 'contact', label: 'Contact' },
-]
-
-const isAuthenticated = computed(() => authStore?.isAuthenticated ?? false)
-const isAdmin = computed(() => authStore?.isAdmin ?? false)
-const currentUser = computed(() => authStore?.currentUser ?? null)
-const wishlistCount = computed(() => wishlistStore?.count ?? 0)
+const auth = hasPinia ? useAuthStore() : null
+const wishlist = hasPinia ? useWishlistStore() : null
+const cart = hasPinia ? useCartStore() : null
+const categories = ref<Category[]>([])
+const categoryState = ref<'idle' | 'loading' | 'ready' | 'error'>('idle')
+const search = ref('')
+const header = ref<HTMLElement | null>(null)
 const signingOut = ref(false)
-
-watch(
-  () => authStore?.currentUser?.id,
-  (userId) => {
-    wishlistStore?.clear()
-    if (userId && wishlistStore) {
-      wishlistStore.fetchWishlist()
+const isAuthenticated = computed(() => auth?.isAuthenticated ?? false)
+const accountLinks = [
+  { name: 'profile', label: 'My account' },
+  { name: 'orders', label: 'My orders' },
+  { name: 'wishlist', label: 'Wishlist' },
+  { name: 'addresses', label: 'Addresses' },
+  { name: 'payment-methods', label: 'Payment methods' },
+]
+const categoryRequest = new AbortController()
+function closeMenus() {
+  header.value?.querySelectorAll('details[open]').forEach((menu) => menu.removeAttribute('open'))
+}
+function outsideClick(event: PointerEvent) {
+  if (!header.value?.contains(event.target as Node)) closeMenus()
+}
+function escapeMenu(event: KeyboardEvent) {
+  if (event.key !== 'Escape') return
+  const menu = (event.target as HTMLElement).closest('details')
+  closeMenus()
+  menu?.querySelector('summary')?.focus()
+}
+async function loadCategories() {
+  if (categoryState.value === 'loading' || categoryState.value === 'ready') return
+  categoryState.value = 'loading'
+  try {
+    const response = await CategoryService.getCategories(categoryRequest.signal)
+    if (!categoryRequest.signal.aborted) {
+      categories.value = response.data
+      categoryState.value = 'ready'
     }
+  } catch {
+    if (!categoryRequest.signal.aborted) categoryState.value = 'error'
+  }
+}
+function toggleMenu(event: Event, categoryMenu = false) {
+  const selected = event.target as HTMLDetailsElement
+  if (selected.open) {
+    header.value?.querySelectorAll('details[open]').forEach((menu) => {
+      if (menu !== selected) menu.removeAttribute('open')
+    })
+    if (categoryMenu) void loadCategories()
+  }
+}
+watch(
+  () => route.fullPath,
+  () => {
+    search.value = typeof route.query.q === 'string' ? route.query.q : ''
+    closeMenus()
   },
   { immediate: true },
 )
-
-async function handleLogout() {
+watch(
+  () => auth?.currentUser?.id,
+  (id) => {
+    wishlist?.clear()
+    if (id) void wishlist?.fetchWishlist()
+  },
+  { immediate: true },
+)
+onMounted(() => {
+  document.addEventListener('pointerdown', outsideClick)
+})
+onBeforeUnmount(() => {
+  categoryRequest.abort()
+  document.removeEventListener('pointerdown', outsideClick)
+})
+function submitSearch() {
+  closeMenus()
+  void router.push({ name: 'products', query: { q: search.value.trim() || undefined } })
+}
+async function logout() {
   if (signingOut.value) return
   signingOut.value = true
   try {
-    await authStore?.logout()
+    await auth?.logout()
   } catch {
-    authStore?.clearAuth()
+    auth?.clearAuth()
   } finally {
-    wishlistStore?.clear()
+    wishlist?.clear()
     signingOut.value = false
   }
+  closeMenus()
   await router.push({ name: 'home' })
 }
 </script>
 
 <template>
-  <header class="border-b border-slate-200 bg-white">
-    <div
-      class="mx-auto flex max-w-6xl flex-col gap-5 px-5 py-5 sm:px-8 lg:flex-row lg:items-start lg:justify-between"
-    >
-      <RouterLink
-        :to="{ name: 'home' }"
-        class="w-fit text-xl font-bold tracking-tight text-slate-900"
-      >
-        InwZa <span class="text-indigo-700">Bookstore</span>
-      </RouterLink>
-      <div class="flex min-w-0 flex-wrap items-center gap-4">
-        <nav aria-label="Main navigation" class="flex flex-wrap gap-1">
-          <RouterLink
-            v-for="link in links"
-            :key="link.name"
-            :to="{ name: link.name }"
-            class="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
-            exact-active-class="bg-indigo-50 text-indigo-800"
-          >
-            {{ link.label }}
-          </RouterLink>
-        </nav>
-
-        <div
-          class="flex w-full min-w-0 flex-wrap items-center gap-2 border-t border-slate-200 pt-3"
+  <header ref="header" class="store-header" @keydown="escapeMenu">
+    <div class="store-header-inner">
+      <nav aria-label="Main navigation" class="store-nav">
+        <RouterLink :to="{ name: 'products' }" class="store-nav-link" active-class="is-current"
+          >All Products</RouterLink
         >
-          <template v-if="isAuthenticated">
-            <RouterLink
-              :to="{ name: 'orders' }"
-              class="rounded-lg px-2.5 py-1 text-sm font-medium text-slate-700 hover:bg-slate-100"
-              exact-active-class="bg-indigo-50 text-indigo-800"
-              >Orders</RouterLink
+        <details class="header-dropdown" @toggle="toggleMenu($event, true)">
+          <summary>Categories <AppIcon name="chevron" :size="14" /></summary>
+          <div class="header-menu">
+            <RouterLink :to="{ name: 'categories' }">All categories</RouterLink>
+            <p
+              v-if="categoryState === 'loading'"
+              role="status"
+              class="px-3 py-2 text-xs text-slate-500"
             >
-            <RouterLink
-              :to="{ name: 'cart' }"
-              class="rounded-lg px-2.5 py-1 text-sm font-medium text-slate-700 hover:bg-slate-100"
-              exact-active-class="bg-indigo-50 text-indigo-800"
-              >Cart
-              <span aria-label="Cart item count">{{ cartStore?.count ?? 0 }}</span></RouterLink
-            >
-            <RouterLink
-              :to="{ name: 'payment-methods' }"
-              class="rounded-lg px-2.5 py-1 text-sm font-medium text-slate-700 hover:bg-slate-100"
-              exact-active-class="bg-indigo-50 text-indigo-800"
-              >Payment methods</RouterLink
-            >
-            <RouterLink
-              :to="{ name: 'addresses' }"
-              class="rounded-lg px-2.5 py-1 text-sm font-medium text-slate-700 hover:bg-slate-100"
-              exact-active-class="bg-indigo-50 text-indigo-800"
-              >Addresses</RouterLink
-            >
-            <RouterLink
-              :to="{ name: 'wishlist' }"
-              class="flex items-center gap-1 rounded-lg px-2.5 py-1 text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900"
-              exact-active-class="bg-indigo-50 text-indigo-800"
-            >
-              Wishlist
-              <span
-                v-if="wishlistCount > 0"
-                class="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-indigo-100 px-1 text-xs font-semibold text-indigo-800"
-              >
-                {{ wishlistCount }}
-              </span>
-            </RouterLink>
-            <RouterLink
-              :to="{ name: 'profile' }"
-              class="max-w-full break-words rounded-lg px-2.5 py-1 text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900"
-              exact-active-class="bg-indigo-50 text-indigo-800"
-            >
-              Hi, {{ currentUser?.username }}
-            </RouterLink>
-            <RouterLink
-              v-if="isAdmin"
-              :to="{ name: 'admin-home' }"
-              class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800"
-            >
-              Back office
-            </RouterLink>
-            <button
-              type="button"
-              :disabled="signingOut"
-              class="cursor-pointer rounded-lg px-3 py-1.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
-              @click="handleLogout"
-            >
-              Sign out
+              Loading categories…
+            </p>
+            <button v-if="categoryState === 'error'" type="button" @click="loadCategories">
+              Couldn't load categories. Retry
             </button>
-          </template>
-          <template v-else>
             <RouterLink
-              :to="{ name: 'login' }"
-              class="rounded-lg px-3 py-1.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
-              exact-active-class="bg-indigo-50 text-indigo-800"
+              v-for="category in categories"
+              :key="category.id"
+              :to="{ name: 'category-products', params: { id: category.id } }"
+              >{{ category.name }}</RouterLink
             >
-              Sign in
-            </RouterLink>
-            <RouterLink
-              :to="{ name: 'register' }"
-              class="rounded-lg bg-indigo-600 px-3.5 py-1.5 text-sm font-semibold text-white shadow-xs transition-colors hover:bg-indigo-700"
+          </div>
+        </details>
+        <details class="header-dropdown" @toggle="toggleMenu">
+          <summary>More <AppIcon name="chevron" :size="14" /></summary>
+          <div class="header-menu">
+            <RouterLink :to="{ name: 'contact' }">Contact us</RouterLink>
+            <RouterLink :to="{ name: 'faq' }">FAQ</RouterLink>
+            <RouterLink :to="{ name: 'store-information' }">Store information</RouterLink>
+          </div>
+        </details>
+      </nav>
+      <RouterLink :to="{ name: 'home' }" class="store-wordmark" aria-label="InwZa Bookstore home"
+        ><span>InwZa</span><small>BOOKSTORE</small></RouterLink
+      >
+      <div class="store-header-actions">
+        <form
+          class="header-search"
+          role="search"
+          aria-label="Search the bookstore"
+          @submit.prevent="submitSearch"
+        >
+          <label for="header-search" class="sr-only">Search products</label>
+          <input
+            id="header-search"
+            v-model="search"
+            type="search"
+            maxlength="100"
+            placeholder="Search products…"
+          />
+          <button type="submit" aria-label="Search"><AppIcon name="search" :size="19" /></button>
+        </form>
+        <RouterLink
+          :to="{ name: 'cart' }"
+          class="header-cart"
+          :aria-label="`Shopping cart, ${cart?.count ?? 0} ${cart?.count === 1 ? 'item' : 'items'}`"
+          ><AppIcon name="cart" :size="23" /><span v-if="cart?.count" class="cart-count">{{
+            cart.count
+          }}</span></RouterLink
+        >
+        <details
+          v-if="isAuthenticated"
+          class="header-dropdown account-dropdown"
+          @toggle="toggleMenu"
+        >
+          <summary class="account-trigger" aria-label="Your account">
+            <AppIcon name="user" :size="18" /><span>Account</span
+            ><AppIcon name="chevron" :size="13" />
+          </summary>
+          <div class="header-menu account-menu">
+            <div class="menu-account">
+              <strong>{{ auth?.currentUser?.username }}</strong
+              ><small>{{ auth?.currentUser?.email }}</small>
+            </div>
+            <RouterLink v-for="link in accountLinks" :key="link.name" :to="{ name: link.name }"
+              >{{ link.label
+              }}<span v-if="link.name === 'wishlist' && wishlist?.count" class="menu-count">{{
+                wishlist.count
+              }}</span></RouterLink
             >
-              Register
-            </RouterLink>
-          </template>
-        </div>
+            <RouterLink v-if="auth?.isAdmin" :to="{ name: 'admin-home' }"
+              >Back office <AppIcon name="arrow" :size="15"
+            /></RouterLink>
+            <button type="button" :disabled="signingOut" @click="logout">Sign out</button>
+          </div>
+        </details>
+        <RouterLink v-else :to="{ name: 'login' }" class="header-login">Login</RouterLink>
       </div>
     </div>
   </header>

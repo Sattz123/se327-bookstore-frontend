@@ -10,7 +10,7 @@ watch(imageUrl, () => (failed.value = false))
 
 <template>
   <div
-    class="flex aspect-[3/4] items-center justify-center overflow-hidden rounded-lg bg-slate-100"
+    class="book-cover flex aspect-[3/4] items-center justify-center overflow-hidden rounded-lg bg-slate-100"
   >
     <img
       v-if="imageUrl && !failed"

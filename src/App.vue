@@ -19,7 +19,8 @@ const route = useRoute()
       v-if="!route.meta.adminArea"
       id="main-content"
       tabindex="-1"
-      class="mx-auto w-full max-w-6xl flex-1 px-5 py-12 sm:px-8 sm:py-16"
+      class="storefront-main mx-auto w-full flex-1 px-5 sm:px-8"
+      :class="{ 'storefront-home': route.name === 'home' }"
     >
       <RouterView />
     </main>

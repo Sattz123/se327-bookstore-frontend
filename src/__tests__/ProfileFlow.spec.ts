@@ -126,16 +126,22 @@ describe('Profile Flow and Boundary Tests', () => {
       expect(wrapper.text()).toContain('Customer')
     })
 
-    it('falls back to auth store user data when getProfile API fails', async () => {
-      vi.mocked(ProfileService.getProfile).mockRejectedValue(new Error('Network error'))
+    it('shows a failed profile read and allows retry without exposing a stale form', async () => {
+      vi.mocked(ProfileService.getProfile)
+        .mockRejectedValueOnce(new Error('Network error'))
+        .mockResolvedValue(mockUser)
+      const router = createBookstoreRouter(createMemoryHistory())
 
       wrapper = mount(ProfileView, {
-        global: { plugins: [pinia] },
+        global: { plugins: [pinia, router] },
       })
       await flushPromises()
 
-      const nameInput = wrapper.find<HTMLInputElement>('#profile-name')
-      expect(nameInput.element.value).toBe('Alice Smith')
+      expect(wrapper.get('[role="alert"]').text()).toContain('Unable to load your profile')
+      expect(wrapper.find('#profile-name').exists()).toBe(false)
+      await wrapper.get('button').trigger('click')
+      await flushPromises()
+      expect(wrapper.get<HTMLInputElement>('#profile-name').element.value).toBe('Alice Smith')
     })
 
     it('prevents update submission when username or email is blank', async () => {

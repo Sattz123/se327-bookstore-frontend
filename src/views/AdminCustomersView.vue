@@ -70,7 +70,7 @@ onBeforeUnmount(() => controller?.abort())
       cancellations.
     </p>
     <form
-      class="mt-6 flex flex-wrap items-end gap-3"
+      class="admin-filter-bar mt-6 flex flex-wrap items-end gap-3"
       aria-label="Search customers"
       @submit.prevent="applySearch"
     >

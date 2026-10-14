@@ -93,7 +93,9 @@ describe('shopping cart flow', () => {
     await app.get('form[aria-label="Add book to cart"]').trigger('submit')
     await flushPromises()
     expect(service.addItem).toHaveBeenCalledWith({ productId: 1, format: 'EBOOK', quantity: 3 })
-    expect(app.get('header a[href="/cart"]').text()).toBe('Cart 3')
+    expect(app.get('header a[href="/cart"]').attributes('aria-label')).toBe(
+      'Shopping cart, 3 items',
+    )
     expect(app.get('main').text()).toContain('Added to cart.')
     await app.get('main a[href="/cart"]').trigger('click')
     await flushPromises()
@@ -138,7 +140,9 @@ describe('shopping cart flow', () => {
     expect(app.get('main').text()).toContain('Paperback')
     expect(app.get('main').text()).toContain('Hardcover')
     expect(app.get('main').text()).toContain('Total: $59.85')
-    expect(app.get('header a[href="/cart"]').text()).toBe('Cart 3')
+    expect(app.get('header a[href="/cart"]').attributes('aria-label')).toBe(
+      'Shopping cart, 3 items',
+    )
   })
   it('retries a failed cart load', async () => {
     service.getCart.mockRejectedValue(new Error('Offline'))
@@ -193,7 +197,9 @@ describe('shopping cart flow', () => {
     await click('Remove')
     expect(service.removeItem).toHaveBeenCalledWith(10)
     expect(app.get('main').text()).toContain('Your cart is empty')
-    expect(app.get('header a[href="/cart"]').text()).toBe('Cart 0')
+    expect(app.get('header a[href="/cart"]').attributes('aria-label')).toBe(
+      'Shopping cart, 0 items',
+    )
   })
   it('redirects after logout and clears private cart rows', async () => {
     const app = await render()

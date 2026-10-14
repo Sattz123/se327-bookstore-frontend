@@ -250,14 +250,14 @@ describe('Authentication Flow and Role Boundaries', () => {
   })
 
   describe('AppHeader with Authentication', () => {
-    it('shows Sign in and Register links for unauthenticated guest', () => {
+    it('shows the login entry point for an unauthenticated guest', () => {
       const router = createBookstoreRouter(createMemoryHistory())
       wrapper = mount(AppHeader, {
         global: { plugins: [pinia, router] },
       })
 
-      expect(wrapper.text()).toContain('Sign in')
-      expect(wrapper.text()).toContain('Register')
+      expect(wrapper.get('a[href="/login"]').text()).toBe('Login')
+      expect(wrapper.find('details.account-dropdown').exists()).toBe(false)
       expect(wrapper.text()).not.toContain('Sign out')
     })
 
@@ -270,13 +270,14 @@ describe('Authentication Flow and Role Boundaries', () => {
         global: { plugins: [pinia, router] },
       })
 
-      expect(wrapper.text()).toContain('Hi, Customer Jane')
+      expect(wrapper.get('.menu-account').text()).toContain('Customer Jane')
+      expect(wrapper.get('a[href="/profile"]').text()).toBe('My account')
       expect(wrapper.text()).toContain('Sign out')
       expect(wrapper.text()).not.toContain('Admin')
       expect(wrapper.text()).not.toContain('Sign in')
     })
 
-    it('shows Admin badge when authenticated as Admin', () => {
+    it('includes the back-office link only for an administrator', () => {
       const auth = useAuthStore()
       auth.setAuth({ token: 'admin-token', user: mockAdminUser })
 
@@ -285,8 +286,8 @@ describe('Authentication Flow and Role Boundaries', () => {
         global: { plugins: [pinia, router] },
       })
 
-      expect(wrapper.text()).toContain('Hi, Admin Bob')
-      expect(wrapper.text()).toContain('Admin')
+      expect(wrapper.get('.menu-account').text()).toContain('Admin Bob')
+      expect(wrapper.get('a[href="/admin"]').text()).toContain('Back office')
       expect(wrapper.text()).toContain('Sign out')
     })
 
@@ -301,7 +302,7 @@ describe('Authentication Flow and Role Boundaries', () => {
         global: { plugins: [pinia, router] },
       })
 
-      const signOutBtn = wrapper.find('button')
+      const signOutBtn = wrapper.get('.account-menu button')
       expect(signOutBtn.text()).toBe('Sign out')
 
       await signOutBtn.trigger('click')

@@ -197,7 +197,7 @@ onBeforeUnmount(() => controller?.abort())
       <ul
         v-else
         aria-label="Books"
-        class="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4"
+        class="mt-4 grid grid-cols-2 gap-x-3 gap-y-7 sm:gap-x-6 lg:grid-cols-4"
       >
         <li v-for="product in results.content" :key="product.id">
           <BookCard :product="product" />

@@ -2,6 +2,7 @@
 import { RouterLink } from 'vue-router'
 import type { Category } from '@/types/catalog'
 import CategoryIcon from '@/components/CategoryIcon.vue'
+import AppIcon from '@/components/AppIcon.vue'
 
 defineProps<{ categories: Category[] }>()
 </script>
@@ -11,11 +12,11 @@ defineProps<{ categories: Category[] }>()
     <li v-for="category in categories" :key="category.id">
       <RouterLink
         :to="{ name: 'category-products', params: { id: category.id } }"
-        class="flex h-full items-center gap-4 rounded-xl border border-slate-200 bg-white p-5 font-semibold transition-colors hover:border-indigo-300 hover:bg-indigo-50"
+        class="category-tile"
       >
         <CategoryIcon :name="category.name" :image="category.imageUrl" />
         <span>{{ category.name }}</span>
-        <span aria-hidden="true" class="ml-auto text-indigo-700">&rarr;</span>
+        <AppIcon name="arrow" :size="20" />
       </RouterLink>
     </li>
   </ul>

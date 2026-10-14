@@ -291,3 +291,34 @@ No backend integration change was needed for Stage 20.
 
 Merge `feature/store-information` into develop first, then
 `fix/storefront-account-feedback` (frontend repository only).
+
+## Storefront and back-office appearance
+
+The storefront header follows the original project's layout: All Products, category
+and help dropdowns, a text wordmark, search, cart and an account menu. Search uses the
+existing catalog route and filters; account links remain available from the menu.
+Category links load when that menu is opened, with retry if loading fails. Menus close
+on navigation, outside clicks and Escape. The home page reuses the original project's
+book-wall image (`public/images/bookstore-wall.png`), with refreshed book/category
+sections and a fuller footer. No generated logo or external font service is required.
+
+The back office uses a white sidebar and top bar, a light grey workspace, consistent
+blue controls, readable tables, product thumbnails and grouped row actions. On phones,
+the sidebar opens from a menu button and tables scroll inside their own container.
+Product/category editors show separately from their lists; order detail pages show
+the selected order and a return link rather than repeating the entire list below.
+
+Product and category image inputs use a shared visual style, with labelled file
+buttons, previews and clear saved/ready states. New product images still upload during
+creation; existing product image changes still save immediately. Limits and API
+validation are unchanged. Styles are split into `src/assets/storefront.css` and
+`src/assets/admin.css`, imported by the small shared `main.css`.
+
+Validation for this UI revision: frontend lint, TypeScript and production build;
+198 existing/updated frontend tests; desktop and 360/390px browser checks with an
+isolated PostgreSQL/backend instance. Checked navigation, header search, account links,
+all admin views, contained table scrolling, file validation, and creating/reopening a
+book with two uploaded images. No backend source, migration or real store data changed.
+
+The UI branch `fix/bookstore-admin-ui` follows the Stage 20 frontend branches. Merge
+those branches first if needed, then merge this UI branch into frontend develop.

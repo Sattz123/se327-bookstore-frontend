@@ -3,6 +3,7 @@ import { isAxiosError } from 'axios'
 import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import BookCover from '@/components/BookCover.vue'
+import AppIcon from '@/components/AppIcon.vue'
 import { AdminProductService } from '@/services/AdminProductService'
 import { useAuthStore } from '@/stores/auth'
 import type { AdminProduct } from '@/types/adminProduct'
@@ -119,30 +120,33 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <section :aria-busy="busy" class="rounded-lg border border-slate-200 p-4 md:col-span-2">
-    <h3 class="text-lg font-semibold">Book images</h3>
-    <p class="mt-2 text-sm text-slate-600">
-      PNG or JPEG, up to 5 MB and 4096 × 4096 pixels. Maximum five images. The first image is the
-      cover. Image changes are saved immediately.
-    </p>
-    <p v-if="error" role="alert" class="mt-3 text-rose-700">{{ error }}</p>
-    <p v-if="message" role="status" class="mt-3 text-emerald-700">{{ message }}</p>
-    <ul v-if="product.images.length" class="mt-4 flex flex-wrap gap-4" aria-label="Product images">
-      <li v-for="(image, index) in product.images" :key="image" class="w-32">
+  <section :aria-busy="busy" class="image-manager md:col-span-2">
+    <div class="image-manager-heading">
+      <h3>Product images</h3>
+      <span>{{ product.images.length }} / 5 images</span>
+    </div>
+    <p class="mt-2">PNG/JPEG, up to 5 MB each (4096 × 4096 px). Image changes save immediately.</p>
+    <p v-if="error" role="alert" class="mt-3 !text-rose-700">{{ error }}</p>
+    <p v-if="message" role="status" class="mt-3 !text-emerald-700">{{ message }}</p>
+    <ul v-if="product.images.length" class="image-preview-grid" aria-label="Product images">
+      <li v-for="(image, index) in product.images" :key="image" class="image-preview-card">
         <BookCover :image="image" :name="`${product.name} image ${index + 1}`" />
-        <p class="mt-2 text-sm font-medium">{{ index === 0 ? 'Cover' : `Image ${index + 1}` }}</p>
-        <div class="mt-2 flex gap-3 text-sm">
+        <div class="image-preview-title">
+          <strong>{{ index === 0 ? 'Cover image' : `Image ${index + 1}` }}</strong
+          ><span>Saved</span>
+        </div>
+        <div class="image-preview-actions">
           <button
             type="button"
             :disabled="busy"
-            class="text-indigo-700 underline"
+            :aria-label="`Replace image ${index + 1}`"
             @click="chooseReplacement(index)"
           >
             Replace</button
           ><button
             type="button"
             :disabled="busy"
-            class="text-rose-700 underline"
+            :aria-label="`Remove image ${index + 1}`"
             @click="remove(index)"
           >
             Remove
@@ -150,49 +154,69 @@ onBeforeUnmount(() => {
         </div>
       </li>
     </ul>
-    <p v-else class="mt-4 text-sm text-slate-600">No images yet.</p>
-    <div class="mt-5 space-y-3">
-      <label for="product-image-file" class="block font-medium">{{
-        replaceIndex === null ? 'Add image' : `Replace image ${replaceIndex + 1}`
-      }}</label>
+    <div class="image-chooser">
+      <span class="image-chooser-icon"><AppIcon name="upload" :size="23" /></span>
+      <div class="image-chooser-copy">
+        <strong>{{
+          replaceIndex !== null
+            ? `Replace image ${replaceIndex + 1}`
+            : product.images.length >= 5
+              ? 'Your gallery is full'
+              : 'Add another image'
+        }}</strong
+        ><small>{{
+          product.images.length >= 5 && replaceIndex === null
+            ? 'Replace or remove an existing image to make a change.'
+            : 'Choose a file, then select Upload to save it.'
+        }}</small>
+      </div>
       <input
         id="product-image-file"
         ref="input"
         type="file"
         accept="image/png,image/jpeg"
         :disabled="busy || (product.images.length >= 5 && replaceIndex === null)"
-        class="block max-w-full text-sm"
+        class="image-file-input"
         @change="selectFile"
       />
-      <img
-        v-if="preview"
-        :src="preview"
-        alt="Selected image preview"
-        class="max-h-48 max-w-48 rounded-lg object-contain"
-      />
-      <div class="flex gap-4">
-        <button
-          type="button"
-          :disabled="busy || !file"
-          class="rounded-lg bg-indigo-700 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
-          @click="upload"
-        >
-          {{
-            busy ? 'Saving image…' : replaceIndex === null ? 'Upload image' : 'Replace image'
-          }}</button
-        ><button
-          v-if="file || replaceIndex !== null"
-          type="button"
-          :disabled="busy"
-          class="text-sm font-semibold text-slate-600"
-          @click="clearSelection"
-        >
-          Clear selection
-        </button>
-      </div>
-      <p v-if="product.images.length >= 5 && replaceIndex === null" class="text-sm text-slate-600">
-        The gallery is full. Replace or remove an image to change it.
-      </p>
+      <label
+        for="product-image-file"
+        class="image-choose-button"
+        :class="{
+          'opacity-40 cursor-not-allowed':
+            busy || (product.images.length >= 5 && replaceIndex === null),
+        }"
+        ><AppIcon name="image" :size="14" />Choose file</label
+      >
     </div>
+    <div v-if="file" class="image-upload-selection">
+      <img :src="preview" alt="Selected image preview" />
+      <div class="min-w-0 flex-1">
+        <p class="text-xs font-medium">{{ file.name }}</p>
+        <p class="mt-1 text-xs text-slate-400">
+          {{ (file.size / 1024).toFixed(0) }} KB · Ready to upload
+        </p>
+      </div>
+      <button
+        type="button"
+        :disabled="busy"
+        class="rounded-lg bg-indigo-700 px-3 py-2 text-white disabled:opacity-50"
+        @click="upload"
+      >
+        {{ busy ? 'Uploading…' : replaceIndex === null ? 'Upload image' : 'Save replacement' }}
+      </button>
+      <button type="button" :disabled="busy" class="text-slate-500" @click="clearSelection">
+        Cancel
+      </button>
+    </div>
+    <button
+      v-else-if="replaceIndex !== null"
+      type="button"
+      :disabled="busy"
+      class="mt-3 text-slate-500"
+      @click="clearSelection"
+    >
+      Cancel replacement
+    </button>
   </section>
 </template>

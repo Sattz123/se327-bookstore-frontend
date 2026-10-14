@@ -6,6 +6,7 @@ import { AdminProductService as service } from '@/services/AdminProductService'
 import { useAuthStore } from '@/stores/auth'
 import ProductImagesEditor from '@/components/ProductImagesEditor.vue'
 import NewProductImages from '@/components/NewProductImages.vue'
+import BookCover from '@/components/BookCover.vue'
 import type { AdminCategory, AdminProduct, AdminProductPage } from '@/types/adminProduct'
 import type { BookFormat } from '@/types/catalog'
 import { formatLabels, formatPrice } from '@/utils/catalog'
@@ -295,12 +296,15 @@ onBeforeUnmount(() => {
   <section :aria-busy="loading || busy">
     <div class="flex flex-wrap items-center justify-between gap-4">
       <div>
-        <h1 class="text-3xl font-bold">Products and inventory</h1>
+        <h1 class="text-3xl font-bold">
+          {{ showForm ? (editing ? 'Edit product' : 'Add a new book') : 'Products and inventory' }}
+        </h1>
         <p class="mt-2 text-slate-600">
           Manage book details, availability, and shared stock across formats.
         </p>
       </div>
       <button
+        v-if="!showForm"
         type="button"
         :disabled="busy || loading || showForm || !categories.length"
         class="rounded-lg bg-indigo-700 px-4 py-2 font-semibold text-white disabled:opacity-50"
@@ -336,21 +340,13 @@ onBeforeUnmount(() => {
     <form
       v-if="showForm"
       aria-label="Product editor"
-      class="mt-6 rounded-xl border border-slate-200 bg-white p-6"
+      class="admin-editor mt-6 rounded-xl border border-slate-200 bg-white p-6"
       @submit.prevent="save"
     >
       <h2 class="text-xl font-semibold">
         {{ editing ? `Edit product #${editing.id}` : 'Create product' }}
       </h2>
       <fieldset :disabled="busy || imageBusy" class="mt-5 grid gap-5 md:grid-cols-2">
-        <ProductImagesEditor
-          v-if="editing"
-          :key="editing.id"
-          :product="editing"
-          @updated="imagesUpdated"
-          @busy="imageBusy = $event"
-        />
-        <NewProductImages v-else v-model="newImages" />
         <div>
           <label for="product-name" class="block font-medium">Title</label
           ><input
@@ -433,10 +429,18 @@ onBeforeUnmount(() => {
             class="mt-1 w-full rounded-lg border border-slate-300 p-2"
           ></textarea>
         </div>
+        <ProductImagesEditor
+          v-if="editing"
+          :key="editing.id"
+          :product="editing"
+          @updated="imagesUpdated"
+          @busy="imageBusy = $event"
+        />
+        <NewProductImages v-else v-model="newImages" />
         <label class="flex items-center gap-2"
           ><input v-model="form.visible" type="checkbox" />Visible in storefront</label
         >
-        <div class="flex gap-4 md:col-span-2">
+        <div class="admin-editor-actions flex gap-4 md:col-span-2">
           <button type="submit" class="rounded-lg bg-indigo-700 px-4 py-2 font-semibold text-white">
             {{ busy ? 'Saving…' : 'Save product' }}</button
           ><button type="button" class="px-3 py-2 font-semibold text-slate-600" @click="cancelForm">
@@ -445,193 +449,212 @@ onBeforeUnmount(() => {
         </div>
       </fieldset>
     </form>
-    <form
-      class="mt-7 flex flex-wrap items-end gap-3"
-      aria-label="Product filters"
-      @submit.prevent="applyFilters"
-    >
-      <fieldset :disabled="busy || loading || showForm" class="contents">
-        <div>
-          <label for="admin-product-search" class="block text-sm font-medium">Title or author</label
-          ><input
-            id="admin-product-search"
-            v-model="search"
-            type="search"
-            maxlength="100"
-            class="mt-1 rounded-lg border border-slate-300 bg-white p-2"
-          />
-        </div>
-        <div>
-          <label for="admin-category-filter" class="block text-sm font-medium">Category</label
-          ><select
-            id="admin-category-filter"
-            v-model="categoryFilter"
-            class="mt-1 rounded-lg border border-slate-300 bg-white p-2"
-          >
-            <option value="">All categories</option>
-            <option v-for="category in categories" :key="category.id" :value="String(category.id)">
-              {{ category.name }}
-            </option>
-          </select>
-        </div>
-        <div>
-          <label for="admin-visibility-filter" class="block text-sm font-medium">Visibility</label
-          ><select
-            id="admin-visibility-filter"
-            v-model="visibilityFilter"
-            class="mt-1 rounded-lg border border-slate-300 bg-white p-2"
-          >
-            <option value="">All products</option>
-            <option value="true">Visible flag on</option>
-            <option value="false">Hidden / archived</option>
-          </select>
-        </div>
-        <button type="submit" class="rounded-lg bg-slate-800 px-4 py-2 font-semibold text-white">
-          Search
-        </button>
-      </fieldset>
-    </form>
-    <p v-if="loading" role="status" class="mt-6">Loading products…</p>
-    <p v-else-if="!categories.length && !error" class="mt-6">
-      No categories are available. Add a category before creating a product.
-    </p>
-    <p v-if="!loading && result && !result.content.length" class="mt-6">
-      No products match your filters.
-    </p>
-    <div v-if="archiveTarget" class="mt-6 rounded-xl bg-amber-50 p-5">
-      <p>
-        Archive “{{ archiveTarget.name }}”? It will be hidden from the storefront. Its records and
-        order history will remain, and you can restore its visibility later.
+    <template v-if="!showForm">
+      <form
+        class="admin-filter-bar mt-7 flex flex-wrap items-end gap-3"
+        aria-label="Product filters"
+        @submit.prevent="applyFilters"
+      >
+        <fieldset :disabled="busy || loading || showForm" class="contents">
+          <div>
+            <label for="admin-product-search" class="block text-sm font-medium"
+              >Title or author</label
+            ><input
+              id="admin-product-search"
+              v-model="search"
+              type="search"
+              maxlength="100"
+              class="mt-1 rounded-lg border border-slate-300 bg-white p-2"
+            />
+          </div>
+          <div>
+            <label for="admin-category-filter" class="block text-sm font-medium">Category</label
+            ><select
+              id="admin-category-filter"
+              v-model="categoryFilter"
+              class="mt-1 rounded-lg border border-slate-300 bg-white p-2"
+            >
+              <option value="">All categories</option>
+              <option
+                v-for="category in categories"
+                :key="category.id"
+                :value="String(category.id)"
+              >
+                {{ category.name }}
+              </option>
+            </select>
+          </div>
+          <div>
+            <label for="admin-visibility-filter" class="block text-sm font-medium">Visibility</label
+            ><select
+              id="admin-visibility-filter"
+              v-model="visibilityFilter"
+              class="mt-1 rounded-lg border border-slate-300 bg-white p-2"
+            >
+              <option value="">All products</option>
+              <option value="true">Visible flag on</option>
+              <option value="false">Hidden / archived</option>
+            </select>
+          </div>
+          <button type="submit" class="rounded-lg bg-slate-800 px-4 py-2 font-semibold text-white">
+            Search
+          </button>
+        </fieldset>
+      </form>
+      <p v-if="loading" role="status" class="mt-6">Loading products…</p>
+      <p v-else-if="!categories.length && !error" class="mt-6">
+        No categories are available. Add a category before creating a product.
       </p>
-      <div class="mt-4 flex gap-4">
+      <p v-if="!loading && result && !result.content.length" class="mt-6">
+        No products match your filters.
+      </p>
+      <div v-if="archiveTarget" class="mt-6 rounded-xl bg-amber-50 p-5">
+        <p>
+          Archive “{{ archiveTarget.name }}”? It will be hidden from the storefront. Its records and
+          order history will remain, and you can restore its visibility later.
+        </p>
+        <div class="mt-4 flex gap-4">
+          <button
+            type="button"
+            :disabled="busy"
+            class="font-semibold text-rose-700"
+            @click="confirmArchive"
+          >
+            Confirm archive</button
+          ><button type="button" :disabled="busy" @click="archiveTarget = null">Cancel</button>
+        </div>
+      </div>
+      <div
+        v-if="result?.content.length && !loading"
+        class="mt-6 overflow-x-auto rounded-xl border border-slate-200 bg-white"
+      >
+        <table class="w-full text-left text-sm">
+          <caption class="sr-only">
+            Administrator product inventory
+          </caption>
+          <thead class="bg-slate-100">
+            <tr>
+              <th scope="col" class="p-4">Book</th>
+              <th scope="col" class="p-4">Price</th>
+              <th scope="col" class="p-4">Inventory</th>
+              <th scope="col" class="p-4">Visibility</th>
+              <th scope="col" class="p-4">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="product in result.content"
+              :key="product.id"
+              class="border-t border-slate-200"
+            >
+              <td class="min-w-52 p-4">
+                <div class="admin-product-cell">
+                  <BookCover :image="product.images[0]" :name="product.name" />
+                  <div class="min-w-0">
+                    <p class="font-semibold">{{ product.name }}</p>
+                    <p class="mt-1 text-slate-500">
+                      #{{ product.id }} · {{ product.author || 'Unknown author' }}
+                    </p>
+                    <p class="mt-1">
+                      {{ product.category.name }} ·
+                      {{ formatsLabel(product.formats) }}
+                    </p>
+                  </div>
+                </div>
+              </td>
+              <td class="whitespace-nowrap p-4">{{ formatPrice(product.price) }}</td>
+              <td class="p-4">
+                <form
+                  :aria-label="`Inventory for ${product.name}`"
+                  class="flex gap-2"
+                  @submit.prevent="updateStock(product)"
+                >
+                  <fieldset :disabled="busy || showForm" class="admin-stock-form flex gap-2">
+                    <input
+                      v-model.number="stockDrafts[product.id]"
+                      :aria-label="`Stock for ${product.name}`"
+                      type="number"
+                      min="0"
+                      max="2147483647"
+                      step="1"
+                      required
+                      class="w-24 rounded-lg border border-slate-300 p-2"
+                    /><button type="submit" class="font-semibold text-indigo-700">
+                      Save stock
+                    </button>
+                  </fieldset>
+                </form>
+              </td>
+              <td class="whitespace-nowrap p-4">
+                <span
+                  :class="
+                    product.visible && product.category.visible
+                      ? 'text-emerald-700'
+                      : 'text-amber-800'
+                  "
+                  >{{
+                    !product.visible
+                      ? 'Hidden / archived'
+                      : product.category.visible
+                        ? 'Visible'
+                        : 'Category hidden'
+                  }}</span
+                >
+              </td>
+              <td class="p-4">
+                <div class="admin-row-actions flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    :disabled="busy || showForm"
+                    class="font-semibold text-indigo-700 disabled:opacity-50"
+                    @click="edit(product.id)"
+                  >
+                    Edit</button
+                  ><button
+                    type="button"
+                    :disabled="busy || showForm"
+                    class="font-semibold text-indigo-700 disabled:opacity-50"
+                    @click="toggleVisibility(product)"
+                  >
+                    {{ product.visible ? 'Hide' : 'Show' }}</button
+                  ><button
+                    v-if="product.visible"
+                    type="button"
+                    :disabled="busy || showForm"
+                    class="font-semibold text-rose-700 disabled:opacity-50"
+                    @click="archiveTarget = product"
+                  >
+                    Archive
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <nav
+        v-if="result && result.totalPages > 1"
+        aria-label="Product pagination"
+        class="mt-6 flex items-center gap-5"
+      >
         <button
           type="button"
-          :disabled="busy"
-          class="font-semibold text-rose-700"
-          @click="confirmArchive"
+          :disabled="page <= 1 || busy || loading || showForm"
+          class="font-semibold text-indigo-700 disabled:opacity-50"
+          @click="changePage(page - 1)"
         >
-          Confirm archive</button
-        ><button type="button" :disabled="busy" @click="archiveTarget = null">Cancel</button>
-      </div>
-    </div>
-    <div
-      v-if="result?.content.length && !loading"
-      class="mt-6 overflow-x-auto rounded-xl border border-slate-200 bg-white"
-    >
-      <table class="w-full text-left text-sm">
-        <caption class="sr-only">
-          Administrator product inventory
-        </caption>
-        <thead class="bg-slate-100">
-          <tr>
-            <th scope="col" class="p-4">Book</th>
-            <th scope="col" class="p-4">Price</th>
-            <th scope="col" class="p-4">Inventory</th>
-            <th scope="col" class="p-4">Visibility</th>
-            <th scope="col" class="p-4">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="product in result.content" :key="product.id" class="border-t border-slate-200">
-            <td class="min-w-52 p-4">
-              <p class="font-semibold">{{ product.name }}</p>
-              <p class="mt-1 text-slate-500">
-                #{{ product.id }} · {{ product.author || 'Unknown author' }}
-              </p>
-              <p class="mt-1">
-                {{ product.category.name }} ·
-                {{ formatsLabel(product.formats) }}
-              </p>
-            </td>
-            <td class="whitespace-nowrap p-4">{{ formatPrice(product.price) }}</td>
-            <td class="p-4">
-              <form
-                :aria-label="`Inventory for ${product.name}`"
-                class="flex gap-2"
-                @submit.prevent="updateStock(product)"
-              >
-                <fieldset :disabled="busy || showForm" class="flex gap-2">
-                  <input
-                    v-model.number="stockDrafts[product.id]"
-                    :aria-label="`Stock for ${product.name}`"
-                    type="number"
-                    min="0"
-                    max="2147483647"
-                    step="1"
-                    required
-                    class="w-24 rounded-lg border border-slate-300 p-2"
-                  /><button type="submit" class="font-semibold text-indigo-700">Save stock</button>
-                </fieldset>
-              </form>
-            </td>
-            <td class="whitespace-nowrap p-4">
-              <span
-                :class="
-                  product.visible && product.category.visible
-                    ? 'text-emerald-700'
-                    : 'text-amber-800'
-                "
-                >{{
-                  !product.visible
-                    ? 'Hidden / archived'
-                    : product.category.visible
-                      ? 'Visible'
-                      : 'Category hidden'
-                }}</span
-              >
-            </td>
-            <td class="p-4">
-              <div class="flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  :disabled="busy || showForm"
-                  class="font-semibold text-indigo-700 disabled:opacity-50"
-                  @click="edit(product.id)"
-                >
-                  Edit</button
-                ><button
-                  type="button"
-                  :disabled="busy || showForm"
-                  class="font-semibold text-indigo-700 disabled:opacity-50"
-                  @click="toggleVisibility(product)"
-                >
-                  {{ product.visible ? 'Hide' : 'Show' }}</button
-                ><button
-                  v-if="product.visible"
-                  type="button"
-                  :disabled="busy || showForm"
-                  class="font-semibold text-rose-700 disabled:opacity-50"
-                  @click="archiveTarget = product"
-                >
-                  Archive
-                </button>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <nav
-      v-if="result && result.totalPages > 1"
-      aria-label="Product pagination"
-      class="mt-6 flex items-center gap-5"
-    >
-      <button
-        type="button"
-        :disabled="page <= 1 || busy || loading || showForm"
-        class="font-semibold text-indigo-700 disabled:opacity-50"
-        @click="changePage(page - 1)"
-      >
-        Previous</button
-      ><span>Page {{ page }} of {{ result.totalPages }} · {{ result.totalElements }} products</span
-      ><button
-        type="button"
-        :disabled="page >= result.totalPages || busy || loading || showForm"
-        class="font-semibold text-indigo-700 disabled:opacity-50"
-        @click="changePage(page + 1)"
-      >
-        Next
-      </button>
-    </nav>
+          Previous</button
+        ><span
+          >Page {{ page }} of {{ result.totalPages }} · {{ result.totalElements }} products</span
+        ><button
+          type="button"
+          :disabled="page >= result.totalPages || busy || loading || showForm"
+          class="font-semibold text-indigo-700 disabled:opacity-50"
+          @click="changePage(page + 1)"
+        >
+          Next
+        </button>
+      </nav>
+    </template>
   </section>
 </template>

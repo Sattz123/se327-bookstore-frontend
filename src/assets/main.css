@@ -1,20 +1,51 @@
 @import 'tailwindcss';
+@import './storefront.css';
+@import './admin.css';
+
+@theme {
+  --color-indigo-50: #f0f3ff;
+  --color-indigo-100: #e5eaff;
+  --color-indigo-200: #cdd7ff;
+  --color-indigo-300: #a9baff;
+  --color-indigo-500: #5066e5;
+  --color-indigo-600: #3d53df;
+  --color-indigo-700: #3549c9;
+  --color-indigo-800: #2b3caa;
+}
 
 @layer base {
   body {
-    @apply m-0 bg-slate-50 font-sans text-slate-900 antialiased;
+    margin: 0;
+    background: #fff;
+    color: #20252d;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
     overflow-wrap: anywhere;
   }
-
   input,
   select,
   textarea {
     min-width: 0;
     max-width: 100%;
   }
-
+  button,
+  summary {
+    cursor: pointer;
+  }
+  button:disabled {
+    cursor: not-allowed;
+  }
   :focus-visible {
-    outline: 2px solid var(--color-indigo-700);
+    outline: 2px solid #3d53df;
     outline-offset: 4px;
+  }
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline-offset: 1px;
+  }
+  input[type='checkbox'],
+  input[type='radio'] {
+    accent-color: #3d53df;
   }
 }
