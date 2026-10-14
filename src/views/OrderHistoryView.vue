@@ -5,6 +5,7 @@ import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { OrderService, type OrderSummary } from '@/services/OrderService'
 import { useAuthStore } from '@/stores/auth'
 import { formatPrice } from '@/utils/catalog'
+import { orderStatusClass, orderStatusLabels } from '@/utils/orders'
 
 const auth = useAuthStore()
 const route = useRoute()
@@ -87,12 +88,8 @@ onBeforeUnmount(() => controller?.abort())
           <p class="font-semibold">{{ formatPrice(order.total) }}</p>
           <span
             class="mt-2 inline-block rounded-full px-3 py-1 text-sm font-medium"
-            :class="
-              order.status === 'PENDING'
-                ? 'bg-amber-50 text-amber-800'
-                : 'bg-emerald-50 text-emerald-800'
-            "
-            >{{ order.status === 'PENDING' ? 'Pending' : 'Completed' }}</span
+            :class="orderStatusClass(order.status)"
+            >{{ orderStatusLabels[order.status] }}</span
           >
         </div>
       </li>

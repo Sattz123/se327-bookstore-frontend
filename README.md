@@ -1,5 +1,11 @@
 # bookstore-frontend
 
+## Administrator orders (Stage 18)
+
+Open **Orders** in the back office (`/admin/orders`) to search by order ID/customer name/email, filter statuses and view paginated results. **View** opens a linked detail view with customer contact, original delivery/payment/item snapshots and totals. The status form offers only transitions allowed by the backend. Cancellation uses an explicit confirmation button, restores purchased quantities once and cannot be undone. There is no real card refund. A conflict keeps the detail visible and offers **Reload order**.
+
+Customer order history/details also show Processing and Cancelled, and completed cash orders are labeled correctly. Cancelled purchases no longer contribute to customer-list totals. Merge `feature/admin-customers` into `develop` first, then `feature/admin-orders` in each repository; the orders branch includes the customer-list commit.
+
 ## Administrator customers (Stage 18)
 
 Open **Customers** in the back-office sidebar (`/admin/customers`) to search names/emails and view contact details, join dates, non-cancelled order counts and total order values. The list is paginated and read-only, matching the original scope. Pending orders are included in order value; this is not a revenue report. Administrators are excluded from the customer list.

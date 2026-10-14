@@ -7,6 +7,7 @@ import { OrderService } from '@/services/OrderService'
 import { useAuthStore } from '@/stores/auth'
 import type { Order } from '@/types/checkout'
 import { formatLabels, formatPrice } from '@/utils/catalog'
+import { orderStatusDescription } from '@/utils/orders'
 
 const route = useRoute()
 const router = useRouter()
@@ -70,11 +71,7 @@ onBeforeUnmount(() => controller?.abort())
       <h2 class="text-xl font-semibold">Order #{{ order.id }}</h2>
       <p class="text-sm text-slate-600">Placed {{ new Date(order.createdAt).toLocaleString() }}</p>
       <p role="status">
-        {{
-          order.status === 'PENDING'
-            ? 'Pending — pay on delivery.'
-            : 'Completed — simulated card payment.'
-        }}
+        {{ orderStatusDescription(order.status, order.paymentType) }}
       </p>
       <p>{{ order.paymentDisplay }}</p>
       <div>
