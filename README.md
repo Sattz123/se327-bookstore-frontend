@@ -109,6 +109,8 @@ The layout tests mount the real application with a fresh in-memory router for ea
 
 `ProductCatalog.spec.ts` mounts the actual app/routes and covers list/detail success, loading, empty results, 404/invalid IDs, server/network failures and retries, optional fields, stock, cover selection/fallbacks, and cancellation of stale requests. `ProductService.spec.ts` uses a controlled Axios adapter to verify HTTP requests without a running server and checks display/image URL helpers. The existing `npm run check` CI job runs all tests and generates coverage.
 
+`CatalogDiscovery.spec.ts` covers featured home sections, category lists/pages, loading/retries, combined URL filters, page navigation, Back navigation, resetting pages after search, empty/out-of-range results, invalid URL values, missing/hidden categories, and delayed search responses. Service tests also check query parameters and the featured/category endpoints. Backend integration tests independently enforce category visibility and 15-item pagination with PostgreSQL.
+
 Coverage includes all TypeScript and Vue source files, including untested files. Test files and type declarations are excluded. Inspect statements, branches, functions, and lines in `coverage/index.html`; `coverage/lcov.info` is available for the later SonarQube setup, and `coverage/coverage-summary.json` contains totals. Reports and build output are ignored by Git. No coverage threshold is imposed at this step.
 
 This is a foundation baseline, not evidence that the full bookstore is tested. The Axios client and application bootstrap may remain uncovered at this stage. jsdom tests do not verify responsive appearance, real browser history/refresh behavior, or live backend integration; those need browser/integration checks.
